@@ -29,7 +29,7 @@ public class TramitesDatabaseInit implements CommandLineRunner {
         t.setRadicadoNumber("2024-001234-56789");
         t.setSubmissionDate(LocalDate.of(2024,3,15));
         t.setProcedureType("Registro Sanitario - Alimento de Riesgo Medio");
-        t.setProductName("Yogurt Natural Premium hola mucho gusto");
+        t.setProductName("Yogurt Natural Premium ");
         t.setCurrentStatus(EstadoTramite.EN_EVALUACION_TECNICA);
         t.setLastUpdate(LocalDateTime.now());
         tramiteRepo.save(t);
@@ -58,6 +58,18 @@ public class TramitesDatabaseInit implements CommandLineRunner {
         r2.setDeadline(LocalDate.of(2024,4,5));
         r2.setStatus(EstadoRequerimiento.RESPONDIDO);
         reqRepo.save(r2);
+
+        Requerimiento r3 = new Requerimiento();
+        r3.setTramite(t); r3.setNumber("REQ-2024-001234-03");
+        r3.setTitle("Certificados de análisis de laboratorio");
+        r3.setDescription("El scrum master es muy gay");
+        r3.setDate(LocalDate.of(2024,3,22));
+        r3.setDeadline(LocalDate.of(2024,3,30));
+        r3.setStatus(EstadoRequerimiento.PENDIENTE);
+        reqRepo.save(r3);
+
+
+
 
         // Notificaciones
         Notificacion n1 = new Notificacion();

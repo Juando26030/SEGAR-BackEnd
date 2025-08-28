@@ -1,4 +1,4 @@
-package com.segar.backend.tramites.model;
+package com.segar.backend.models;
 
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
@@ -6,14 +6,12 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 
 import java.time.LocalDate;
-import java.util.ArrayList;
-import java.util.List;
 
 @Entity
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
-public class Requerimiento {
+public class EventoTramite {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
@@ -22,18 +20,13 @@ public class Requerimiento {
     @JoinColumn(name = "tramite_id")
     private Tramite tramite;
 
-    private String number;
     private String title;
 
-    @Column(length = 2000)
+    @Column(length = 1000)
     private String description;
 
     private LocalDate date;
-    private LocalDate deadline;
-
-    @Enumerated(EnumType.STRING)
-    private EstadoRequerimiento status;
-
-    @OneToMany(mappedBy = "requerimiento", cascade = CascadeType.ALL, orphanRemoval = true)
-    private List<RespuestaRequerimiento> respuestas = new ArrayList<>();
+    private boolean completed;
+    private boolean currentEvent;
+    private Integer orden;
 }

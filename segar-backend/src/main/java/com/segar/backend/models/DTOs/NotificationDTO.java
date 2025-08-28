@@ -1,4 +1,4 @@
-package com.segar.backend.tramites.dto;
+package com.segar.backend.models.DTOs;
 
 public record NotificationDTO(
         Long id,

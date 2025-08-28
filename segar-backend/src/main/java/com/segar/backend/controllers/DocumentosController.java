@@ -1,4 +1,4 @@
-package com.segar.backend.tramites.controllers;
+package com.segar.backend.controllers;
 
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;

@@ -1,9 +1,27 @@
-package com.segar.backend.tramites.services;
+package com.segar.backend.services.implementations;
 
-import com.segar.backend.tramites.dto.*;
-import com.segar.backend.tramites.model.*;
-import com.segar.backend.tramites.repositories.*;
-import lombok.RequiredArgsConstructor;
+import com.segar.backend.models.Archivo;
+import com.segar.backend.models.EstadoRequerimiento;
+import com.segar.backend.models.EstadoTramite;
+import com.segar.backend.models.EventoTramite;
+import com.segar.backend.models.Notificacion;
+import com.segar.backend.models.PreferenciasNotificacion;
+import com.segar.backend.models.Requerimiento;
+import com.segar.backend.models.RespuestaRequerimiento;
+import com.segar.backend.models.TipoNotificacion;
+import com.segar.backend.models.Tramite;
+import com.segar.backend.models.DTOs.NotificationDTO;
+import com.segar.backend.models.DTOs.NotificationSettingsDTO;
+import com.segar.backend.models.DTOs.RequirementDTO;
+import com.segar.backend.models.DTOs.TimelineEventDTO;
+import com.segar.backend.models.DTOs.TrackingDTO;
+import com.segar.backend.repositories.EventoTramiteRepository;
+import com.segar.backend.repositories.NotificacionRepository;
+import com.segar.backend.repositories.PreferenciasNotificacionRepository;
+import com.segar.backend.repositories.RequerimientoRepository;
+import com.segar.backend.repositories.TramiteRepository;
+
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.lang.Nullable;
 import org.springframework.stereotype.Service;
@@ -20,14 +38,22 @@ import java.util.List;
 import java.util.Locale;
 
 @Service
-@RequiredArgsConstructor
-public class TramiteService {
+public class TramiteServiceImpl {
 
-    private final TramiteRepository tramiteRepo;
-    private final EventoTramiteRepository eventoRepo;
-    private final RequerimientoRepository reqRepo;
-    private final NotificacionRepository notifRepo;
-    private final PreferenciasNotificacionRepository prefRepo;
+    @Autowired
+    private TramiteRepository tramiteRepo;
+
+    @Autowired
+    private EventoTramiteRepository eventoRepo;
+
+    @Autowired
+    private RequerimientoRepository reqRepo;
+
+    @Autowired
+    private NotificacionRepository notifRepo;
+
+    @Autowired
+    private PreferenciasNotificacionRepository prefRepo;
 
     public TrackingDTO getTracking(Long tramiteId) {
         Tramite t = tramiteRepo.findById(tramiteId).orElseThrow();

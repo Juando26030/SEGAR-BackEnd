@@ -1,7 +1,12 @@
-package com.segar.backend.tramites.controllers;
+package com.segar.backend.controllers;
 
-import com.segar.backend.tramites.dto.*;
-import com.segar.backend.tramites.services.TramiteService;
+import com.segar.backend.models.DTOs.NotificationDTO;
+import com.segar.backend.models.DTOs.NotificationSettingsDTO;
+import com.segar.backend.models.DTOs.RequirementDTO;
+import com.segar.backend.models.DTOs.TimelineEventDTO;
+import com.segar.backend.models.DTOs.TrackingDTO;
+import com.segar.backend.services.interfaces.TramiteService;
+
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;

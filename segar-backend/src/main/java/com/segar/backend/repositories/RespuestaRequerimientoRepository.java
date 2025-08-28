@@ -1,7 +1,8 @@
-package com.segar.backend.tramites.repositories;
+package com.segar.backend.repositories;
 
-import com.segar.backend.tramites.model.RespuestaRequerimiento;
 import org.springframework.data.jpa.repository.JpaRepository;
+
+import com.segar.backend.models.RespuestaRequerimiento;
 
 public interface RespuestaRequerimientoRepository extends JpaRepository<RespuestaRequerimiento, Long> {
 }

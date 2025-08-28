@@ -1,4 +1,4 @@
-package com.segar.backend.tramites.model;
+package com.segar.backend.models;
 
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;

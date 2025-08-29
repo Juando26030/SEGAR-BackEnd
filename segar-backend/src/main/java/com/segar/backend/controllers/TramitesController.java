@@ -23,6 +23,7 @@ public class TramitesController {
 
     private final TramiteService service;
 
+
     @GetMapping("/tracking")
     public TrackingDTO tracking(@PathVariable Long id) { return service.getTracking(id); }
 

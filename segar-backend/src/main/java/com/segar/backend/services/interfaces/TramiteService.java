@@ -38,7 +38,4 @@ public interface TramiteService {
     @Transactional
     public void updateSettings(Long tramiteId, NotificationSettingsDTO dto);
 
-    public String toFrontStatus(EstadoTramite e);
-
-    public RequirementDTO toRequirementDTO(Requerimiento r);
 }

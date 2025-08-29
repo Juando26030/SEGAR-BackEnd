@@ -20,6 +20,7 @@ import com.segar.backend.repositories.NotificacionRepository;
 import com.segar.backend.repositories.PreferenciasNotificacionRepository;
 import com.segar.backend.repositories.RequerimientoRepository;
 import com.segar.backend.repositories.TramiteRepository;
+import com.segar.backend.services.interfaces.TramiteService;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
@@ -38,7 +39,7 @@ import java.util.List;
 import java.util.Locale;
 
 @Service
-public class TramiteServiceImpl {
+public class TramiteServiceImpl implements TramiteService {
 
     @Autowired
     private TramiteRepository tramiteRepo;
@@ -168,7 +169,7 @@ public class TramiteServiceImpl {
         p.setEmail(dto.email()); p.setSms(dto.sms()); p.setRequirements(dto.requirements()); p.setStatusUpdates(dto.statusUpdates());
     }
 
-    private String toFrontStatus(EstadoTramite e) {
+    public String toFrontStatus(EstadoTramite e) {
         return switch (e) {
             case RADICADO -> "Radicado";
             case EN_EVALUACION_TECNICA -> "En evaluación técnica";
@@ -178,7 +179,7 @@ public class TramiteServiceImpl {
         };
     }
 
-    private RequirementDTO toRequirementDTO(Requerimiento r) {
+    public RequirementDTO toRequirementDTO(Requerimiento r) {
         int daysRemaining = r.getDeadline() != null ? (int) ChronoUnit.DAYS.between(LocalDate.now(), r.getDeadline()) : 0;
         return new RequirementDTO(
                 r.getId(), r.getNumber(), r.getTitle(), r.getDescription(),

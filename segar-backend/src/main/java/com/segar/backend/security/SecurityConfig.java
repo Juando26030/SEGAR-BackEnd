@@ -29,7 +29,11 @@ public class SecurityConfig {
                                 "/swagger-ui.html",
                                 "/swagger-ui/**",
                                 "/producto/**",
-                                "/api/tramites/**"
+                                "/api/tramites/**",
+                                "/api/documentos/**",
+                                "/api/empresas/**",
+                                "/api/pagos/**",
+                                "/api/solicitudes/**"
                         ).permitAll()
                         .anyRequest().authenticated()
                 )

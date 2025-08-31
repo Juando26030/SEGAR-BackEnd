@@ -69,4 +69,20 @@ public interface SolicitudRepository extends JpaRepository<Solicitud, Long> {
      * @return Lista de solicitudes filtradas
      */
     List<Solicitud> findByEmpresaIdAndEstado(Long empresaId, EstadoSolicitud estado);
+
+    /**
+     * Busca solicitud por empresa, producto y tipo de trámite
+     * Usado para validar duplicados en radicación
+     * @param empresaId ID de la empresa
+     * @param productoId ID del producto
+     * @param tipoTramite Tipo de trámite
+     * @return Optional con la solicitud si existe
+     */
+    @Query("SELECT s FROM Solicitud s WHERE s.empresaId = :empresaId " +
+           "AND s.producto.id = :productoId AND s.tipoTramite = :tipoTramite")
+    Optional<Solicitud> findByEmpresaIdAndProductoIdAndTipoTramite(
+        @Param("empresaId") Long empresaId,
+        @Param("productoId") Long productoId,
+        @Param("tipoTramite") TipoTramite tipoTramite
+    );
 }

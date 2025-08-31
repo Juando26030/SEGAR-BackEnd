@@ -79,14 +79,12 @@ public class SolicitudServiceImpl implements SolicitudService {
 
         // Crear respuesta DTO
         return SolicitudRadicadaResponseDTO.builder()
-            .id(solicitud.getId())
             .numeroRadicado(solicitud.getNumeroRadicado())
-            .empresaId(solicitud.getEmpresaId())
-            .nombreProducto(producto.getNombre())
-            .tipoTramite(solicitud.getTipoTramite())
-            .estado(solicitud.getEstado())
+            .estado(solicitud.getEstado().name())
             .fechaRadicacion(solicitud.getFechaRadicacion())
-            .observaciones(solicitud.getObservaciones())
+            .empresaId(solicitud.getEmpresaId())
+            .productoId(solicitud.getProducto().getId())
+            .tipoTramite(solicitud.getTipoTramite().name())
             .mensaje("Solicitud radicada exitosamente con número: " + solicitud.getNumeroRadicado())
             .build();
     }

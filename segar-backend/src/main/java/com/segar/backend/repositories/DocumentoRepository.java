@@ -61,4 +61,12 @@ public interface DocumentoRepository extends JpaRepository<Documento, Long> {
         @Param("tiposObligatorios") List<TipoDocumento> tiposObligatorios,
         @Param("cantidadObligatorios") long cantidadObligatorios
     );
+
+    /**
+     * Busca documentos por empresa (usado para validaciones de radicación)
+     * @param empresaId ID de la empresa
+     * @return Lista de documentos de la empresa
+     */
+    @Query("SELECT d FROM Documento d WHERE d.solicitud.empresaId = :empresaId")
+    List<Documento> findByEmpresaId(@Param("empresaId") Long empresaId);
 }

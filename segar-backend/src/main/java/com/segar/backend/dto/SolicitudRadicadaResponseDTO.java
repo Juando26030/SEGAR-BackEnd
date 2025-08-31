@@ -1,7 +1,5 @@
 package com.segar.backend.dto;
 
-import com.segar.backend.models.EstadoSolicitud;
-import com.segar.backend.models.TipoTramite;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -20,44 +18,35 @@ import java.time.LocalDateTime;
 public class SolicitudRadicadaResponseDTO {
 
     /**
-     * ID de la solicitud radicada
-     */
-    private Long id;
-
-    /**
      * Número de radicado generado automáticamente
+     * Formato: INV-20250831-000123
      */
     private String numeroRadicado;
 
     /**
-     * ID de la empresa
+     * Estado de la solicitud después de radicación
      */
-    private Long empresaId;
+    private String estado;
 
     /**
-     * Nombre del producto
-     */
-    private String nombreProducto;
-
-    /**
-     * Tipo de trámite radicado
-     */
-    private TipoTramite tipoTramite;
-
-    /**
-     * Estado actual de la solicitud
-     */
-    private EstadoSolicitud estado;
-
-    /**
-     * Fecha de radicación
+     * Fecha y hora de radicación
      */
     private LocalDateTime fechaRadicacion;
 
     /**
-     * Observaciones de la solicitud
+     * ID de la empresa que radicó
      */
-    private String observaciones;
+    private Long empresaId;
+
+    /**
+     * ID del producto para el cual se radicó
+     */
+    private Long productoId;
+
+    /**
+     * Tipo de trámite radicado
+     */
+    private String tipoTramite;
 
     /**
      * Mensaje de confirmación

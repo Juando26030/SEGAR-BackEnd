@@ -25,6 +25,12 @@ public class Pago {
     private Long id;
 
     /**
+     * ID de la empresa que realizó el pago
+     */
+    @Column(nullable = false)
+    private Long empresaId;
+
+    /**
      * Monto del pago
      */
     @Column(nullable = false, precision = 10, scale = 2)

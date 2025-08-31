@@ -49,6 +49,23 @@ public interface PagoRepository extends JpaRepository<Pago, Long> {
     boolean existePagoAprobadoPorSolicitud(@Param("solicitudId") Long solicitudId);
 
     /**
+     * Busca pagos por empresa y estado (para validaciones de radicación)
+     * @param empresaId ID de la empresa
+     * @param estado Estado del pago
+     * @return Lista de pagos filtrados
+     */
+    @Query("SELECT p FROM Pago p WHERE p.empresaId = :empresaId AND p.estado = :estado")
+    List<Pago> findByEmpresaIdAndEstado(@Param("empresaId") Long empresaId, @Param("estado") EstadoPago estado);
+
+    /**
+     * Busca el último pago de una empresa
+     * @param empresaId ID de la empresa
+     * @return Optional con el último pago
+     */
+    @Query("SELECT p FROM Pago p WHERE p.empresaId = :empresaId ORDER BY p.fechaPago DESC")
+    Optional<Pago> findUltimoPagoPorEmpresa(@Param("empresaId") Long empresaId);
+
+    /**
      * Busca pago por ID de solicitud
      * @param solicitudId ID de la solicitud
      * @return Optional con el pago si existe

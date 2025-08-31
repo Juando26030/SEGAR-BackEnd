@@ -68,4 +68,11 @@ public class Documento {
      * Indica si el documento es obligatorio para el tipo de trámite
      */
     private boolean obligatorio;
+
+    /**
+     * Contenido o referencia del archivo
+     * Para testing puede contener contenido simulado
+     */
+    @Column(length = 1000)
+    private String archivo;
 }

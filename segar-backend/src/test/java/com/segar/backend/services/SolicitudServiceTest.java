@@ -116,15 +116,13 @@ class SolicitudServiceTest {
 
         // Assert
         assertNotNull(resultado);
-        assertEquals(1L, resultado.getId());
         assertNotNull(resultado.getNumeroRadicado());
         assertTrue(resultado.getNumeroRadicado().startsWith("INV-"));
         assertEquals(1001L, resultado.getEmpresaId());
-        assertEquals("Yogurt Natural", resultado.getNombreProducto());
-        assertEquals(TipoTramite.REGISTRO, resultado.getTipoTramite());
-        assertEquals(EstadoSolicitud.RADICADA, resultado.getEstado());
+        assertEquals(2L, resultado.getProductoId());
+        assertEquals("REGISTRO", resultado.getTipoTramite());
+        assertEquals("RADICADA", resultado.getEstado());
         assertNotNull(resultado.getFechaRadicacion());
-        assertEquals("Solicitud de prueba", resultado.getObservaciones());
         assertTrue(resultado.getMensaje().contains("radicada exitosamente"));
 
         // Verificar que se llamaron los métodos necesarios

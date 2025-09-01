@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8"/>
+    <title>Certificado de Análisis</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            font-size: 12px;
+            line-height: 1.4;
+            margin: 20px;
+        }
+        .header {
+            text-align: center;
+            border-bottom: 2px solid #333;
+            padding-bottom: 10px;
+            margin-bottom: 20px;
+        }
+        .title {
+            text-align: center;
+            font-size: 18px;
+            font-weight: bold;
+            margin: 10px 0;
+        }
+        .section {
+            margin-bottom: 15px;
+            border: 1px solid #ccc;
+            padding: 10px;
+        }
+        .section-title {
+            background-color: #f0f0f0;
+            font-weight: bold;
+            padding: 5px;
+            margin: -10px -10px 10px -10px;
+        }
+        .field-group {
+            display: flex;
+            margin-bottom: 8px;
+        }
+        .field-label {
+            font-weight: bold;
+            width: 40%;
+        }
+        .field-value {
+            flex: 1;
+        }
+        .table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 10px 0;
+        }
+        .table th, .table td {
+            border: 1px solid #333;
+            padding: 5px;
+            text-align: center;
+        }
+        .table th {
+            background-color: #f0f0f0;
+            font-weight: bold;
+        }
+        .compliant { background-color: #d4edda; }
+        .non-compliant { background-color: #f8d7da; }
+        .footer {
+            margin-top: 30px;
+            border-top: 1px solid #333;
+            padding-top: 10px;
+            font-size: 10px;
+            text-align: center;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <div class="title">CERTIFICADO DE ANÁLISIS (COA)</div>
+    </div>
+
+    <!-- Información del Laboratorio -->
+    <div class="section">
+        <div class="section-title">INFORMACIÓN DEL LABORATORIO</div>
+        <div class="field-group">
+            <div class="field-label">Laboratorio:</div>
+            <div class="field-value" th:text="${datosFormulario?.laboratorio_nombre}">-</div>
+        </div>
+        <div class="field-group">
+            <div class="field-label">Acreditación:</div>
+            <div class="field-value" th:text="${datosFormulario?.laboratorio_acreditacion}">-</div>
+        </div>
+        <div class="field-group">
+            <div class="field-label">Responsable Técnico:</div>
+            <div class="field-value" th:text="${datosFormulario?.responsable_tecnico}">-</div>
+        </div>
+    </div>
+
+    <!-- Información de la Muestra -->
+    <div class="section">
+        <div class="section-title">INFORMACIÓN DE LA MUESTRA</div>
+        <div class="field-group">
+            <div class="field-label">Lote Analizado:</div>
+            <div class="field-value" th:text="${datosFormulario?.muestra_lote}">-</div>
+        </div>
+        <div class="field-group">
+            <div class="field-label">Fecha de Muestreo:</div>
+            <div class="field-value" th:text="${datosFormulario?.fecha_muestreo}">-</div>
+        </div>
+        <div class="field-group">
+            <div class="field-label">Fecha de Análisis:</div>
+            <div class="field-value" th:text="${datosFormulario?.fecha_analisis}">-</div>
+        </div>
+    </div>
+
+    <!-- Resultados de Análisis -->
+    <div class="section">
+        <div class="section-title">RESULTADOS DE ANÁLISIS</div>
+        <div th:if="${datosFormulario?.parametros_evaluados}">
+            <table class="table">
+                <thead>
+                    <tr>
+                        <th>Parámetro</th>
+                        <th>Unidad</th>
+                        <th>Límite</th>
+                        <th>Resultado</th>
+                        <th>Cumple</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr th:each="param : ${datosFormulario?.parametros_evaluados}"
+                        th:class="${param.cumple == 'Sí' or param.cumple == 'SI' or param.cumple == 'si' ? 'compliant' : 'non-compliant'}">
+                        <td th:text="${param.parametro}">-</td>
+                        <td th:text="${param.unidad}">-</td>
+                        <td th:text="${param.limite}">-</td>
+                        <td th:text="${param.resultado}">-</td>
+                        <td th:text="${param.cumple}">-</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- Métodos de Análisis -->
+    <div class="section">
+        <div class="section-title">MÉTODOS DE ANÁLISIS</div>
+        <div class="field-value" th:text="${datosFormulario?.metodos_analisis}">-</div>
+    </div>
+
+    <!-- Observaciones -->
+    <div class="section" th:if="${datosFormulario?.observaciones}">
+        <div class="section-title">OBSERVACIONES</div>
+        <div class="field-value" th:text="${datosFormulario?.observaciones}">-</div>
+    </div>
+
+    <div class="footer">
+        <p><strong>Este certificado de análisis es válido únicamente para la muestra analizada</strong></p>
+        <p>Documento generado automáticamente por el Sistema SEGAR</p>
+        <p>Fecha de generación: <span th:text="${#temporals.format(fechaGeneracion, 'dd/MM/yyyy HH:mm:ss')}"></span></p>
+    </div>
+</body>
+</html>

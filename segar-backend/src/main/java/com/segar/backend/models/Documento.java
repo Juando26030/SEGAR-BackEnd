@@ -75,4 +75,37 @@ public class Documento {
      */
     @Column(length = 1000)
     private String archivo;
+
+    // ========== CAMPOS PARA INTEGRACIÓN CON DOCUMENTOS DINÁMICOS ==========
+    // Campos opcionales para mantener compatibilidad y permitir migración gradual
+
+    /**
+     * Referencia a la plantilla de documento dinámico (opcional)
+     * Permite vincular documentos existentes con el nuevo sistema
+     */
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "template_id")
+    private DocumentTemplate template;
+
+    /**
+     * Referencia a la instancia de documento dinámico (opcional)
+     * Para documentos generados con el nuevo sistema
+     */
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "instance_id")
+    private DocumentInstance instance;
+
+    /**
+     * Metadatos adicionales en formato JSON (opcional)
+     * Para almacenar información extra sin romper estructura existente
+     */
+    @Lob
+    @Column(name = "metadata", columnDefinition = "CLOB")
+    private String metadata;
+
+    /**
+     * Clave de almacenamiento para el nuevo sistema de archivos (opcional)
+     */
+    @Column(name = "storage_key", length = 500)
+    private String storageKey;
 }

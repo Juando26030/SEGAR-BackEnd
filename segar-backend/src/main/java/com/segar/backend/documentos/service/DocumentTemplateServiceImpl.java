@@ -2,12 +2,11 @@ package com.segar.backend.documentos.service;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.segar.backend.dto.DocumentTemplateDTO;
-import com.segar.backend.models.DocumentTemplate;
-import com.segar.backend.models.TipoTramite;
-import com.segar.backend.models.CategoriaRiesgo;
-import com.segar.backend.repositories.DocumentTemplateRepository;
-import com.segar.backend.services.DocumentTemplateService;
+import com.segar.backend.documentos.domain.*;
+import com.segar.backend.documentos.infrastructure.*;
+import com.segar.backend.documentos.api.dto.*;
+import com.segar.backend.shared.domain.CategoriaRiesgo;
+import com.segar.backend.shared.domain.TipoTramite;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -27,7 +26,7 @@ public class DocumentTemplateServiceImpl {
     private final DocumentTemplateRepository documentTemplateRepository;
     private final ObjectMapper objectMapper;
 
-    @Override
+     
     public List<DocumentTemplateDTO> getAllActiveTemplates() {
         log.info("Obteniendo todas las plantillas activas");
         return documentTemplateRepository.findByActiveTrue()
@@ -36,7 +35,7 @@ public class DocumentTemplateServiceImpl {
                 .collect(Collectors.toList());
     }
 
-    @Override
+     
     public DocumentTemplateDTO getTemplateById(Long id) {
         log.info("Obteniendo plantilla por ID: {}", id);
         DocumentTemplate template = documentTemplateRepository.findById(id)
@@ -44,7 +43,7 @@ public class DocumentTemplateServiceImpl {
         return convertToDTO(template);
     }
 
-    @Override
+     
     public List<DocumentTemplateDTO> getTemplatesByTramite(TipoTramite tipoTramite) {
         log.info("Obteniendo plantillas para trámite: {}", tipoTramite);
         return documentTemplateRepository.findByTipoTramiteOrderedByDisplayOrder(tipoTramite)
@@ -53,7 +52,7 @@ public class DocumentTemplateServiceImpl {
                 .collect(Collectors.toList());
     }
 
-    @Override
+     
     public List<DocumentTemplateDTO> getTemplatesByTramiteAndRiesgo(TipoTramite tipoTramite, CategoriaRiesgo categoriaRiesgo) {
         log.info("Obteniendo plantillas para trámite: {} y categoría riesgo: {}", tipoTramite, categoriaRiesgo);
         return documentTemplateRepository.findByTipoTramiteAndCategoriaRiesgo(tipoTramite, categoriaRiesgo)
@@ -62,7 +61,7 @@ public class DocumentTemplateServiceImpl {
                 .collect(Collectors.toList());
     }
 
-    @Override
+     
     public List<DocumentTemplateDTO> getRequiredTemplatesByTramite(TipoTramite tipoTramite) {
         log.info("Obteniendo plantillas obligatorias para trámite: {}", tipoTramite);
         return documentTemplateRepository.findRequiredByTipoTramite(tipoTramite)
@@ -71,7 +70,7 @@ public class DocumentTemplateServiceImpl {
                 .collect(Collectors.toList());
     }
 
-    @Override
+     
     @Transactional
     public DocumentTemplateDTO createTemplate(DocumentTemplateDTO templateDTO) {
         log.info("Creando nueva plantilla: {}", templateDTO.getName());
@@ -88,7 +87,7 @@ public class DocumentTemplateServiceImpl {
         return convertToDTO(savedTemplate);
     }
 
-    @Override
+     
     @Transactional
     public DocumentTemplateDTO updateTemplate(Long id, DocumentTemplateDTO templateDTO) {
         log.info("Actualizando plantilla ID: {}", id);
@@ -118,7 +117,7 @@ public class DocumentTemplateServiceImpl {
         return convertToDTO(savedTemplate);
     }
 
-    @Override
+     
     @Transactional
     public void deactivateTemplate(Long id) {
         log.info("Desactivando plantilla ID: {}", id);
@@ -132,7 +131,7 @@ public class DocumentTemplateServiceImpl {
         log.info("Plantilla desactivada exitosamente: {}", id);
     }
 
-    @Override
+     
     public boolean validateFieldsDefinition(String fieldsDefinition) {
         if (fieldsDefinition == null || fieldsDefinition.trim().isEmpty()) {
             return false;
@@ -160,7 +159,7 @@ public class DocumentTemplateServiceImpl {
         }
     }
 
-    @Override
+     
     public boolean validateFileRules(String fileRules) {
         if (fileRules == null || fileRules.trim().isEmpty()) {
             return true; // Es opcional

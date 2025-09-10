@@ -1,7 +1,8 @@
 package com.segar.backend.documentos.api;
 
-import com.segar.backend.dto.*;
-import com.segar.backend.services.DocumentInstanceService;
+import com.segar.backend.documentos.api.dto.*;
+import com.segar.backend.documentos.service.DocumentInstanceServiceImpl;
+
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
@@ -30,7 +31,7 @@ import java.util.List;
 @Tag(name = "Instancias de Documentos", description = "API para gestión de instancias de documentos en trámites")
 public class DocumentInstanceController {
 
-    private final DocumentInstanceService documentInstanceService;
+    private final DocumentInstanceServiceImpl documentInstanceService;
 
     @Operation(summary = "Obtener instancias de documentos por trámite",
                description = "Lista todas las instancias de documentos asociadas a un trámite específico")

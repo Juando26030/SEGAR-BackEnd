@@ -1,6 +1,7 @@
 package com.segar.backend.documentos.api;
 
-import com.segar.backend.services.FileStorageService;
+
+import com.segar.backend.documentos.service.LocalFileStorageService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
@@ -29,7 +30,7 @@ import java.io.InputStream;
 @Tag(name = "Archivos", description = "API para descarga de archivos de documentos")
 public class FileDownloadController {
 
-    private final FileStorageService fileStorageService;
+    private final LocalFileStorageService fileStorageService;
 
     @Operation(summary = "Descargar archivo por clave de almacenamiento",
                description = "Descarga un archivo usando su clave de almacenamiento interno")

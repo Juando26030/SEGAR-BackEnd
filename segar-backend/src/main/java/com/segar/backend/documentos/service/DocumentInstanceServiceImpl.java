@@ -2,10 +2,12 @@ package com.segar.backend.documentos.service;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.segar.backend.dto.*;
-import com.segar.backend.models.*;
-import com.segar.backend.repositories.*;
-import com.segar.backend.services.*;
+import com.segar.backend.documentos.domain.*;
+import com.segar.backend.documentos.infrastructure.*;
+import com.segar.backend.documentos.api.dto.*;
+import com.segar.backend.shared.domain.TipoTramite;
+import com.segar.backend.shared.domain.Tramite;
+import com.segar.backend.shared.infrastructure.TramiteRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -25,13 +27,16 @@ public class DocumentInstanceServiceImpl {
 
     private final DocumentInstanceRepository documentInstanceRepository;
     private final DocumentTemplateRepository documentTemplateRepository;
-    private final TramiteRepository tramiteRepository;
-    private final DocumentTemplateService documentTemplateService;
-    private final DocumentPdfService documentPdfService;
-    private final FileStorageService fileStorageService;
+    private final DocumentTemplateServiceImpl documentTemplateService;
+    private final LocalFileStorageService fileStorageService;
     private final ObjectMapper objectMapper;
+    private final ThymeleafDocumentPdfService documentPdfService;
 
-    @Override
+
+    private final TramiteRepository tramiteRepository;
+
+
+     
     public List<DocumentInstanceDTO> getInstancesByTramite(Long tramiteId) {
         log.info("Obteniendo instancias de documentos para trámite: {}", tramiteId);
 
@@ -41,7 +46,7 @@ public class DocumentInstanceServiceImpl {
                 .collect(Collectors.toList());
     }
 
-    @Override
+     
     public DocumentInstanceDTO getInstanceById(Long id) {
         log.info("Obteniendo instancia de documento por ID: {}", id);
 
@@ -51,7 +56,7 @@ public class DocumentInstanceServiceImpl {
         return convertToDTO(instance);
     }
 
-    @Override
+     
     @Transactional
     public DocumentInstanceDTO createInstance(Long tramiteId, DocumentInstanceRequestDTO requestDTO) {
         log.info("Creando instancia de documento para trámite: {}, plantilla: {}", tramiteId, requestDTO.getTemplateId());
@@ -97,7 +102,7 @@ public class DocumentInstanceServiceImpl {
         return convertToDTO(savedInstance);
     }
 
-    @Override
+     
     @Transactional
     public DocumentInstanceDTO updateInstance(Long tramiteId, Long instanceId, DocumentInstanceRequestDTO requestDTO) {
         log.info("Actualizando instancia de documento: {} del trámite: {}", instanceId, tramiteId);
@@ -125,7 +130,7 @@ public class DocumentInstanceServiceImpl {
         return convertToDTO(savedInstance);
     }
 
-    @Override
+     
     @Transactional
     public DocumentInstanceDTO uploadFiles(Long tramiteId, Long instanceId, MultipartFile[] files) {
         log.info("Subiendo archivos para instancia: {} del trámite: {}", instanceId, tramiteId);
@@ -163,7 +168,7 @@ public class DocumentInstanceServiceImpl {
         }
     }
 
-    @Override
+     
     @Transactional
     public DocumentExportResponseDTO exportToPdf(Long tramiteId, Long instanceId, DocumentExportRequestDTO requestDTO) {
         log.info("Exportando a PDF instancia: {} del trámite: {}", instanceId, tramiteId);
@@ -186,7 +191,7 @@ public class DocumentInstanceServiceImpl {
         }
     }
 
-    @Override
+     
     @Transactional
     public void deleteInstance(Long tramiteId, Long instanceId) {
         log.info("Eliminando instancia: {} del trámite: {}", instanceId, tramiteId);
@@ -206,7 +211,7 @@ public class DocumentInstanceServiceImpl {
         log.info("Instancia eliminada exitosamente: {}", instanceId);
     }
 
-    @Override
+     
     public boolean areAllRequiredDocumentsCompleted(Long tramiteId) {
         log.info("Verificando completitud de documentos obligatorios para trámite: {}", tramiteId);
 
@@ -216,7 +221,7 @@ public class DocumentInstanceServiceImpl {
         return requiredCompleted >= requiredTotal;
     }
 
-    @Override
+     
     public DocumentCompletionSummaryDTO getDocumentCompletionSummary(Long tramiteId) {
         log.info("Obteniendo resumen de completitud para trámite: {}", tramiteId);
 
@@ -278,7 +283,7 @@ public class DocumentInstanceServiceImpl {
                 .build();
     }
 
-    @Override
+     
     public boolean validateInstanceData(Long templateId, String filledData) {
         if (filledData == null || filledData.trim().isEmpty()) {
             return true; // Datos vacíos son válidos (borrador)

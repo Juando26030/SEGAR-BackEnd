@@ -1,5 +1,6 @@
 package com.segar.backend.tramites.domain;
 
+import com.segar.backend.shared.domain.Tramite;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Data;

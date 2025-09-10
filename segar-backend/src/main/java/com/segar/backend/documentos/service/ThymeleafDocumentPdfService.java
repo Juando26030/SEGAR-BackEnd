@@ -2,13 +2,9 @@ package com.segar.backend.documentos.service;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.openhtmltopdf.pdfboxout.PdfRendererBuilder;
-import com.segar.backend.dto.DocumentExportRequestDTO;
-import com.segar.backend.dto.DocumentExportResponseDTO;
-import com.segar.backend.models.DocumentInstance;
-import com.segar.backend.models.DocumentTemplate;
-import com.segar.backend.repositories.DocumentInstanceRepository;
-import com.segar.backend.services.DocumentPdfService;
-import com.segar.backend.services.FileStorageService;
+import com.segar.backend.documentos.domain.*;
+import com.segar.backend.documentos.infrastructure.*;
+import com.segar.backend.documentos.api.dto.*;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -31,11 +27,11 @@ import java.util.Map;
 public class ThymeleafDocumentPdfService {
 
     private final TemplateEngine templateEngine;
-    private final FileStorageService fileStorageService;
+    private final LocalFileStorageService fileStorageService;
     private final DocumentInstanceRepository documentInstanceRepository;
     private final ObjectMapper objectMapper;
 
-    @Override
+     
     public DocumentExportResponseDTO generatePdf(DocumentInstance instance, DocumentExportRequestDTO request) throws Exception {
         log.info("Generando PDF para documento instancia ID: {}", instance.getId());
 
@@ -80,7 +76,7 @@ public class ThymeleafDocumentPdfService {
             .build();
     }
 
-    @Override
+     
     public DocumentExportResponseDTO generateCombinedPdf(Long tramiteId, DocumentExportRequestDTO request) throws Exception {
         log.info("Generando PDF combinado para trámite ID: {}", tramiteId);
 
@@ -121,7 +117,7 @@ public class ThymeleafDocumentPdfService {
             .build();
     }
 
-    @Override
+     
     public boolean isAvailable() {
         try {
             // Test básico para verificar que las librerías están disponibles

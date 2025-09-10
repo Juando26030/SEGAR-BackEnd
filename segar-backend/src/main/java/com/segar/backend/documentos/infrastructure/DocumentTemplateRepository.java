@@ -1,8 +1,9 @@
 package com.segar.backend.documentos.infrastructure;
 
-import com.segar.backend.models.DocumentTemplate;
-import com.segar.backend.models.TipoTramite;
-import com.segar.backend.models.CategoriaRiesgo;
+
+import com.segar.backend.documentos.domain.DocumentTemplate;
+import com.segar.backend.shared.domain.CategoriaRiesgo;
+import com.segar.backend.shared.domain.TipoTramite;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;

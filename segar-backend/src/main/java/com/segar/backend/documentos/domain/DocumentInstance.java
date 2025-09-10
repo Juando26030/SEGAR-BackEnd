@@ -1,5 +1,6 @@
 package com.segar.backend.documentos.domain;
 
+import com.segar.backend.shared.domain.Tramite;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -37,7 +38,7 @@ public class DocumentInstance {
      */
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "tramite_id")
-    private com.segar.backend.tramites.domain.Tramite tramite;
+    private Tramite tramite;
 
     /**
      * Empresa propietaria del documento

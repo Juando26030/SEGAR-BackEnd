@@ -1,6 +1,6 @@
 package com.segar.backend.documentos.service;
 
-import com.segar.backend.services.FileStorageService;
+
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
@@ -26,7 +26,7 @@ public class LocalFileStorageService {
     @Value("${app.storage.local.url-prefix:http://localhost:8080/api/files}")
     private String urlPrefix;
 
-    @Override
+     
     public String store(MultipartFile file, String folder) throws Exception {
         if (file.isEmpty()) {
             throw new IllegalArgumentException("Cannot store empty file");
@@ -49,7 +49,7 @@ public class LocalFileStorageService {
         return storageKey;
     }
 
-    @Override
+     
     public String store(InputStream inputStream, String fileName, String folder, String contentType) throws Exception {
         String extension = getFileExtension(fileName);
         String storageKey = folder + "/" + UUID.randomUUID().toString() + extension;
@@ -65,7 +65,7 @@ public class LocalFileStorageService {
         return storageKey;
     }
 
-    @Override
+     
     public InputStream retrieve(String storageKey) throws Exception {
         Path filePath = Paths.get(basePath, storageKey);
 
@@ -76,12 +76,12 @@ public class LocalFileStorageService {
         return Files.newInputStream(filePath);
     }
 
-    @Override
+     
     public String getPublicUrl(String storageKey) {
         return urlPrefix + "/" + storageKey;
     }
 
-    @Override
+     
     public void delete(String storageKey) throws Exception {
         Path filePath = Paths.get(basePath, storageKey);
 
@@ -91,13 +91,13 @@ public class LocalFileStorageService {
         }
     }
 
-    @Override
+     
     public boolean exists(String storageKey) {
         Path filePath = Paths.get(basePath, storageKey);
         return Files.exists(filePath);
     }
 
-    @Override
+     
     public long getFileSize(String storageKey) throws Exception {
         Path filePath = Paths.get(basePath, storageKey);
 

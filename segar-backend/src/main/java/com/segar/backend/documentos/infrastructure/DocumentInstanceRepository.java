@@ -1,8 +1,8 @@
 package com.segar.backend.documentos.infrastructure;
 
-import com.segar.backend.models.DocumentInstance;
-import com.segar.backend.models.DocumentTemplate;
-import com.segar.backend.models.DocumentInstance.DocumentStatus;
+
+import com.segar.backend.documentos.domain.DocumentInstance;
+import com.segar.backend.documentos.domain.DocumentTemplate;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
@@ -35,7 +35,7 @@ public interface DocumentInstanceRepository extends JpaRepository<DocumentInstan
     /**
      * Busca instancias por trámite y estado
      */
-    List<DocumentInstance> findByTramiteIdAndStatus(Long tramiteId, DocumentStatus status);
+    List<DocumentInstance> findByTramiteIdAndStatus(Long tramiteId, DocumentInstance.DocumentStatus status);
 
     /**
      * Busca instancias finalizadas por trámite
@@ -62,9 +62,9 @@ public interface DocumentInstanceRepository extends JpaRepository<DocumentInstan
            "JOIN dt.appliesToTramiteTypes tt " +
            "JOIN Tramite t ON t.id = :tramiteId " +
            "WHERE " +
-           "(UPPER(t.procedureType) IN ('REGISTRO', 'REGISTRO_SANITARIO') AND tt = com.segar.backend.models.TipoTramite.REGISTRO) OR " +
-           "(UPPER(t.procedureType) IN ('RENOVACION', 'RENOVACION_SANITARIA') AND tt = com.segar.backend.models.TipoTramite.RENOVACION) OR " +
-           "(UPPER(t.procedureType) IN ('MODIFICACION', 'MODIFICACION_SANITARIA') AND tt = com.segar.backend.models.TipoTramite.MODIFICACION) " +
+           "(UPPER(t.procedureType) IN ('REGISTRO', 'REGISTRO_SANITARIO') AND tt = com.segar.backend.shared.domain.TipoTramite.REGISTRO) OR " +
+           "(UPPER(t.procedureType) IN ('RENOVACION', 'RENOVACION_SANITARIA') AND tt = com.segar.backend.shared.domain.TipoTramite.RENOVACION) OR " +
+           "(UPPER(t.procedureType) IN ('MODIFICACION', 'MODIFICACION_SANITARIA') AND tt = com.segar.backend.shared.domain.TipoTramite.MODIFICACION) " +
            "AND dt.required = true " +
            "AND dt.active = true")
     long countRequiredTemplatesByTramiteId(@Param("tramiteId") Long tramiteId);
@@ -92,5 +92,5 @@ public interface DocumentInstanceRepository extends JpaRepository<DocumentInstan
     /**
      * Verifica si existe una instancia finalizada para una plantilla y trámite
      */
-    boolean existsByTramiteIdAndTemplateAndStatus(Long tramiteId, DocumentTemplate template, DocumentStatus status);
+    boolean existsByTramiteIdAndTemplateAndStatus(Long tramiteId, DocumentTemplate template, DocumentInstance.DocumentStatus status);
 }

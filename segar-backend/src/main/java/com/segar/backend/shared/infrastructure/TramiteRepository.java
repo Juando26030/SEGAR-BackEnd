@@ -1,6 +1,6 @@
-package com.segar.backend.tramites.infrastructure;
+package com.segar.backend.shared.infrastructure;
 
-import com.segar.backend.tramites.domain.Tramite;
+import com.segar.backend.shared.domain.Tramite;
 import org.springframework.data.jpa.repository.JpaRepository;
 
 

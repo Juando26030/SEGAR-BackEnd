@@ -8,6 +8,7 @@ import com.segar.backend.shared.domain.EstadoRequerimiento;
 import com.segar.backend.shared.domain.TipoNotificacion;
 
 
+import com.segar.backend.shared.infrastructure.TramiteRepository;
 import com.segar.backend.tramites.domain.EventoTramite;
 import com.segar.backend.tramites.domain.Requerimiento;
 import com.segar.backend.tramites.domain.RespuestaRequerimiento;
@@ -15,7 +16,7 @@ import com.segar.backend.tramites.domain.Notificacion;
 import com.segar.backend.tramites.domain.PreferenciasNotificacion;
 import com.segar.backend.tramites.api.dto.NotificationDTO;
 import com.segar.backend.tramites.api.dto.NotificationSettingsDTO;
-import com.segar.backend.tramites.domain.Tramite;
+import com.segar.backend.shared.domain.Tramite;
 import com.segar.backend.tramites.api.dto.RequirementDTO;
 import com.segar.backend.tramites.api.dto.TimelineEventDTO;
 import com.segar.backend.tramites.api.dto.TrackingDTO;

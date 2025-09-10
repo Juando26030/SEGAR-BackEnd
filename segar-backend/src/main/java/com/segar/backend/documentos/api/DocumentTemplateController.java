@@ -1,9 +1,11 @@
 package com.segar.backend.documentos.api;
 
-import com.segar.backend.dto.DocumentTemplateDTO;
-import com.segar.backend.models.TipoTramite;
-import com.segar.backend.models.CategoriaRiesgo;
-import com.segar.backend.services.DocumentTemplateService;
+import com.segar.backend.documentos.api.dto.*;
+import com.segar.backend.documentos.domain.*;
+import com.segar.backend.documentos.service.DocumentTemplateServiceImpl;
+import com.segar.backend.shared.domain.CategoriaRiesgo;
+import com.segar.backend.shared.domain.TipoTramite;
+
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
@@ -30,7 +32,7 @@ import java.util.List;
 @Tag(name = "Plantillas de Documentos", description = "API para gestión de plantillas de documentos dinámicos")
 public class DocumentTemplateController {
 
-    private final DocumentTemplateService documentTemplateService;
+    private final DocumentTemplateServiceImpl documentTemplateService;
 
     @Operation(summary = "Obtener todas las plantillas activas",
                description = "Lista todas las plantillas de documentos activas en el sistema")

@@ -1,10 +1,10 @@
-package com.segar.backend.tramites.domain;
+package com.segar.backend.shared.domain;
 
+import com.segar.backend.tramites.domain.EventoTramite;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
-import com.segar.backend.shared.domain.EstadoTramite;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;

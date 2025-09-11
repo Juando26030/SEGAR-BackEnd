@@ -1,6 +1,6 @@
-package com.segar.backend.documentos.infrastructure;
+package com.segar.backend.tramites.infrastructure;
 
-import com.segar.backend.documentos.domain.Archivo;
+import com.segar.backend.tramites.domain.Archivo;
 import org.springframework.data.jpa.repository.JpaRepository;
 
 

@@ -4,35 +4,20 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
 
+import com.segar.backend.shared.domain.*;
+import com.segar.backend.tramites.domain.*;
+import com.segar.backend.tramites.infrastructure.*;
+import com.segar.backend.shared.infrastructure.*;
+import com.segar.backend.documentos.infrastructure.*;
+
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.ApplicationArguments;
 import org.springframework.boot.ApplicationRunner;
 import org.springframework.context.annotation.Profile;
 import org.springframework.stereotype.Controller;
 
-import com.segar.backend.models.EstadoRequerimiento;
-import com.segar.backend.models.EstadoRegistro;
-import com.segar.backend.models.EstadoResolucion;
-import com.segar.backend.models.EstadoTramite;
-import com.segar.backend.models.EventoTramite;
-import com.segar.backend.models.HistorialTramite;
-import com.segar.backend.models.Notificacion;
-import com.segar.backend.models.PreferenciasNotificacion;
-import com.segar.backend.models.Producto;
-import com.segar.backend.models.RegistroSanitario;
-import com.segar.backend.models.Requerimiento;
-import com.segar.backend.models.Resolucion;
-import com.segar.backend.models.TipoNotificacion;
-import com.segar.backend.models.Tramite;
-import com.segar.backend.repositories.EventoTramiteRepository;
-import com.segar.backend.repositories.HistorialTramiteRepository;
-import com.segar.backend.repositories.NotificacionRepository;
-import com.segar.backend.repositories.PreferenciasNotificacionRepository;
-import com.segar.backend.repositories.ProductoRepository;
-import com.segar.backend.repositories.RegistroSanitarioRepository;
-import com.segar.backend.repositories.RequerimientoRepository;
-import com.segar.backend.repositories.ResolucionRepository;
-import com.segar.backend.repositories.TramiteRepository;
+
+
 
 import jakarta.transaction.Transactional;
 

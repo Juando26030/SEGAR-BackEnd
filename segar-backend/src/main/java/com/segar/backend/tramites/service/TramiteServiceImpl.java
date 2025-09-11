@@ -1,19 +1,13 @@
 package com.segar.backend.tramites.service;
 
-import com.segar.backend.documentos.domain.Archivo;
+
 
 
 import com.segar.backend.shared.domain.EstadoTramite;
 import com.segar.backend.shared.domain.EstadoRequerimiento;
 import com.segar.backend.shared.domain.TipoNotificacion;
-
-
 import com.segar.backend.shared.infrastructure.TramiteRepository;
-import com.segar.backend.tramites.domain.EventoTramite;
-import com.segar.backend.tramites.domain.Requerimiento;
-import com.segar.backend.tramites.domain.RespuestaRequerimiento;
-import com.segar.backend.tramites.domain.Notificacion;
-import com.segar.backend.tramites.domain.PreferenciasNotificacion;
+import com.segar.backend.tramites.domain.*;
 import com.segar.backend.tramites.api.dto.NotificationDTO;
 import com.segar.backend.tramites.api.dto.NotificationSettingsDTO;
 import com.segar.backend.shared.domain.Tramite;

@@ -75,9 +75,11 @@ public class Solicitud {
     /**
      * Documentos asociados a la solicitud
      */
-    @OneToMany(mappedBy = "solicitud", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
-    @Builder.Default
-    private List<Documento> documentos = new ArrayList<>();
+    // Usar solo IDs:
+    @ElementCollection
+    @CollectionTable(name = "solicitud_documentos", joinColumns = @JoinColumn(name = "solicitud_id"))
+    @Column(name = "documento_id")
+    private List<Long> documentosIds;
 
     /**
      * Pago asociado a la solicitud

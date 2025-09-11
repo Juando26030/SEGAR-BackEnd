@@ -4,8 +4,13 @@ import com.segar.backend.shared.domain.EstadoPago;
 import com.segar.backend.shared.domain.EstadoSolicitud;
 import com.segar.backend.shared.domain.TipoTramite;
 import com.segar.backend.shared.domain.Producto;
-import com.segar.backend.documentos.domain.Documento;
-import com.segar.backend.documentos.infrastructure.DocumentoRepository;
+import com.segar.backend.shared.events.DocumentValidationRequestEvent;
+import com.segar.backend.shared.events.DocumentValidationResponseEvent;
+import com.segar.backend.shared.events.DocumentosSolicitudAsociadosEvent;
+import com.segar.backend.shared.infrastructure.ProductoRepository;
+
+
+
 import com.segar.backend.tramites.api.dto.RadicacionSolicitudDTO;
 import com.segar.backend.tramites.api.dto.SolicitudRadicadaResponseDTO;
 import com.segar.backend.tramites.domain.Pago;
@@ -14,18 +19,17 @@ import com.segar.backend.tramites.domain.exceptions.DocumentosIncompletosExcepti
 import com.segar.backend.tramites.domain.exceptions.PagoInvalidoException;
 import com.segar.backend.tramites.domain.exceptions.SolicitudDuplicadaException;
 import com.segar.backend.tramites.infrastructure.PagoRepository;
-import com.segar.backend.shared.infrastructure.ProductoRepository;
 import com.segar.backend.tramites.infrastructure.SolicitudRepository;
 import lombok.RequiredArgsConstructor;
+import org.springframework.context.ApplicationEventPublisher;
+import org.springframework.context.event.EventListener;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
+import java.util.*;
+import java.util.concurrent.ConcurrentHashMap;
 
 /**
  * Implementación del servicio para el Paso 5: Radicación de la Solicitud
@@ -41,7 +45,10 @@ public class RadicacionServiceImpl {
     private final SolicitudRepository solicitudRepository;
     private final ProductoRepository productoRepository;
     private final PagoRepository pagoRepository;
-    private final DocumentoRepository documentoRepository;
+    private final ApplicationEventPublisher eventPublisher;
+    // Map para almacenar respuestas de validaciones asíncronas
+    private final Map<String, DocumentValidationResponseEvent> validationResponses = new ConcurrentHashMap<>();
+
 
     public SolicitudRadicadaResponseDTO radicarSolicitud(RadicacionSolicitudDTO radicacionDTO) {
         // Validaciones previas
@@ -57,9 +64,8 @@ public class RadicacionServiceImpl {
         Pago pago = pagoRepository.findById(radicacionDTO.getPagoId())
             .orElseThrow(() -> new PagoInvalidoException("Pago no encontrado"));
 
-        List<Documento> documentos = documentoRepository.findAllById(radicacionDTO.getDocumentosId());
 
-        // Crear y configurar la solicitud
+        // Crear y configurar la solicitud SIN documentos directamente
         Solicitud solicitud = Solicitud.builder()
             .empresaId(radicacionDTO.getEmpresaId())
             .producto(producto)
@@ -69,14 +75,17 @@ public class RadicacionServiceImpl {
             .fechaRadicacion(LocalDateTime.now())
             .observaciones(radicacionDTO.getObservaciones())
             .pago(pago)
-            .documentos(documentos)
+            .documentosIds(radicacionDTO.getDocumentosId()) // Guardar solo IDs
             .build();
-
-        // Actualizar documentos para referenciar la solicitud
-        documentos.forEach(doc -> doc.setSolicitud(solicitud));
 
         // Guardar en base de datos
         Solicitud solicitudGuardada = solicitudRepository.save(solicitud);
+
+        // Publicar evento para notificar que documentos están asociados a solicitud
+        eventPublisher.publishEvent(new DocumentosSolicitudAsociadosEvent(
+                solicitudGuardada.getId(),
+                radicacionDTO.getDocumentosId()
+        ));
 
         // Crear respuesta
         return SolicitudRadicadaResponseDTO.builder()
@@ -103,10 +112,26 @@ public class RadicacionServiceImpl {
             // Validar empresa registrada
             validaciones.put("empresaRegistrada", validarEmpresaExiste(empresaId));
 
-            // Validar documentos disponibles
-            List<Documento> documentos = documentoRepository.findByEmpresaId(empresaId);
-            validaciones.put("documentosCargados", !documentos.isEmpty());
-            validaciones.put("cantidadDocumentos", documentos.size());
+            // Solicitar validación de documentos por eventos
+            String requestId = UUID.randomUUID().toString();
+            eventPublisher.publishEvent(new DocumentValidationRequestEvent(
+                    requestId,
+                    empresaId,
+                    null,
+                    "EMPRESA"
+            ));
+
+            // Esperar respuesta (con timeout)
+            DocumentValidationResponseEvent response = waitForValidationResponse(requestId, 5000);
+
+            if (response != null) {
+                validaciones.put("documentosCargados", response.documentCount() > 0);
+                validaciones.put("cantidadDocumentos", response.documentCount());
+            } else {
+                validaciones.put("documentosCargados", false);
+                validaciones.put("cantidadDocumentos", 0);
+                validaciones.put("documentosError", "Timeout validando documentos");
+            }
 
             // Validar pagos aprobados
             List<Pago> pagosAprobados = pagoRepository.findByEmpresaIdAndEstado(empresaId, EstadoPago.APROBADO);
@@ -161,20 +186,48 @@ public class RadicacionServiceImpl {
             throw new DocumentosIncompletosException("No se han cargado documentos obligatorios");
         }
 
-        List<Documento> documentos = documentoRepository.findAllById(documentosId);
-        if (documentos.size() != documentosId.size()) {
-            throw new DocumentosIncompletosException("Algunos documentos especificados no existen");
+
+        // Solicitar validación por eventos
+        String requestId = UUID.randomUUID().toString();
+        eventPublisher.publishEvent(new DocumentValidationRequestEvent(
+                requestId,
+                null,
+                documentosId,
+                "OBLIGATORIOS"
+        ));
+
+        // Esperar respuesta
+        DocumentValidationResponseEvent response = waitForValidationResponse(requestId, 10000);
+
+        if (response == null) {
+            throw new DocumentosIncompletosException("Timeout validando documentos obligatorios");
         }
 
-        // Validar que los documentos estén completos
-        for (Documento doc : documentos) {
-            if (doc.getRutaArchivo() == null || doc.getRutaArchivo().isEmpty()) {
-                throw new DocumentosIncompletosException("Documento sin ruta de archivo: " + doc.getTipoDocumento());
+        if (!response.isValid()) {
+            throw new DocumentosIncompletosException(response.errorMessage());
+        }
+    }
+
+    @EventListener
+    public void handleDocumentValidationResponse(DocumentValidationResponseEvent event) {
+        validationResponses.put(event.requestId(), event);
+    }
+
+    private DocumentValidationResponseEvent waitForValidationResponse(String requestId, long timeoutMs) {
+        long startTime = System.currentTimeMillis();
+        while (System.currentTimeMillis() - startTime < timeoutMs) {
+            DocumentValidationResponseEvent response = validationResponses.remove(requestId);
+            if (response != null) {
+                return response;
             }
-            if (doc.getNombreArchivo() == null || doc.getNombreArchivo().isEmpty()) {
-                throw new DocumentosIncompletosException("Documento sin nombre de archivo: " + doc.getTipoDocumento());
+            try {
+                Thread.sleep(100);
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+                break;
             }
         }
+        return null;
     }
 
     private void validarPagoAprobado(Long pagoId) {

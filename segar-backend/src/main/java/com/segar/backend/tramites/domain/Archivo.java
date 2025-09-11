@@ -1,4 +1,4 @@
-package com.segar.backend.documentos.domain;
+package com.segar.backend.tramites.domain;
 
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;

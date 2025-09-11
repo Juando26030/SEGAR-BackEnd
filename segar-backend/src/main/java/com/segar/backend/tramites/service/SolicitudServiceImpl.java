@@ -1,10 +1,13 @@
 package com.segar.backend.tramites.service;
 
 import com.segar.backend.shared.domain.*;
-import com.segar.backend.documentos.domain.Documento;
 
+
+import com.segar.backend.shared.events.DocumentValidationResponseEvent;
+import com.segar.backend.shared.events.DocumentosTipoValidationRequestEvent;
 import com.segar.backend.shared.infrastructure.ProductoRepository;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.event.EventListener;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -14,18 +17,17 @@ import com.segar.backend.tramites.domain.exceptions.DocumentosIncompletosExcepti
 import com.segar.backend.tramites.domain.exceptions.PagoInvalidoException;
 import com.segar.backend.tramites.domain.exceptions.SolicitudDuplicadaException;
 import com.segar.backend.tramites.domain.*;
-import com.segar.backend.documentos.infrastructure.DocumentoRepository;
 import com.segar.backend.tramites.infrastructure.PagoRepository;
-
+import com.segar.backend.shared.events.DocumentosSolicitudUpdateEvent;
+import org.springframework.context.ApplicationEventPublisher;
 
 import com.segar.backend.tramites.infrastructure.SolicitudRepository;
 
 
 
 import java.time.LocalDateTime;
-import java.util.Arrays;
-import java.util.List;
-import java.util.Optional;
+import java.util.*;
+import java.util.concurrent.ConcurrentHashMap;
 
 /**
  * Implementación del servicio para gestión de solicitudes de trámites INVIMA
@@ -39,13 +41,18 @@ public class SolicitudServiceImpl {
     private SolicitudRepository solicitudRepository;
 
     @Autowired
-    private DocumentoRepository documentoRepository;
-
-    @Autowired
     private PagoRepository pagoRepository;
 
     @Autowired
     private ProductoRepository productoRepository;
+
+    @Autowired
+    private ApplicationEventPublisher eventPublisher;
+
+
+    // Map para almacenar respuestas de validaciones asíncronas
+    private final Map<String, DocumentValidationResponseEvent> validationResponses = new ConcurrentHashMap<>();
+
 
     /**
      * Documentos obligatorios para registro sanitario
@@ -78,9 +85,6 @@ public class SolicitudServiceImpl {
         // Crear y guardar la solicitud
         Solicitud solicitud = crearSolicitud(radicacionDTO, producto, pago);
 
-        // Asociar documentos a la solicitud
-        asociarDocumentos(solicitud, radicacionDTO.getDocumentosId());
-
         solicitud = solicitudRepository.save(solicitud);
 
         // Crear respuesta DTO
@@ -108,23 +112,23 @@ public class SolicitudServiceImpl {
             throw new DocumentosIncompletosException("No se han proporcionado documentos");
         }
 
-        // Obtener documentos por IDs
-        List<Documento> documentos = documentoRepository.findAllById(documentosId);
+        // Solicitar validación de documentos obligatorios por evento
+        String requestId = UUID.randomUUID().toString();
+        eventPublisher.publishEvent(new DocumentosTipoValidationRequestEvent(
+                requestId,
+                documentosId,
+                DOCUMENTOS_OBLIGATORIOS_REGISTRO
+        ));
 
-        if (documentos.size() != documentosId.size()) {
-            throw new DocumentosIncompletosException("Algunos documentos no existen en el sistema");
+        // Esperar respuesta con timeout
+        DocumentValidationResponseEvent response = waitForValidationResponse(requestId, 10000);
+
+        if (response == null) {
+            throw new DocumentosIncompletosException("Timeout validando documentos obligatorios");
         }
 
-        // Verificar que están todos los documentos obligatorios
-        List<TipoDocumento> tiposPresentes = documentos.stream()
-            .map(Documento::getTipoDocumento)
-            .toList();
-
-        for (TipoDocumento tipoObligatorio : DOCUMENTOS_OBLIGATORIOS_REGISTRO) {
-            if (!tiposPresentes.contains(tipoObligatorio)) {
-                throw new DocumentosIncompletosException(
-                    "Falta el documento obligatorio: " + tipoObligatorio.getDescripcion());
-            }
+        if (!response.isValid()) {
+            throw new DocumentosIncompletosException(response.errorMessage());
         }
     }
 
@@ -160,12 +164,26 @@ public class SolicitudServiceImpl {
             .build();
     }
 
-    private void asociarDocumentos(Solicitud solicitud, List<Long> documentosId) {
-        List<Documento> documentos = documentoRepository.findAllById(documentosId);
-        for (Documento documento : documentos) {
-            documento.setSolicitud(solicitud);
+    @EventListener
+    public void handleDocumentValidationResponse(DocumentValidationResponseEvent event) {
+        validationResponses.put(event.requestId(), event);
+    }
+
+    private DocumentValidationResponseEvent waitForValidationResponse(String requestId, long timeoutMs) {
+        long startTime = System.currentTimeMillis();
+        while (System.currentTimeMillis() - startTime < timeoutMs) {
+            DocumentValidationResponseEvent response = validationResponses.remove(requestId);
+            if (response != null) {
+                return response;
+            }
+            try {
+                Thread.sleep(100);
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+                break;
+            }
         }
-        documentoRepository.saveAll(documentos);
+        return null;
     }
 
     /**

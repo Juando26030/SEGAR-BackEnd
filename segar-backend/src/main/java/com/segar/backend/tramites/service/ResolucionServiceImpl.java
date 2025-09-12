@@ -1,9 +1,9 @@
 package com.segar.backend.tramites.service;
 
-import com.segar.backend.dto.ResolucionDTO;
-import com.segar.backend.models.Resolucion;
-import com.segar.backend.repositories.ResolucionRepository;
-import com.segar.backend.services.interfaces.ResolucionService;
+
+import com.segar.backend.tramites.api.dto.ResolucionDTO;
+import com.segar.backend.tramites.domain.Resolucion;
+import com.segar.backend.tramites.infrastructure.ResolucionRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -20,7 +20,7 @@ public class ResolucionServiceImpl {
 
     private final ResolucionRepository resolucionRepository;
 
-    @Override
+     
     public ResolucionDTO generarResolucion(Long tramiteId, String decision, String observaciones, String autoridad) {
         // Crear resolución
         Resolucion resolucion = Resolucion.builder()
@@ -28,8 +28,8 @@ public class ResolucionServiceImpl {
             .fechaEmision(LocalDateTime.now())
             .autoridad(autoridad != null ? autoridad : "INVIMA")
             .estado(decision.equals("APROBAR") ?
-                com.segar.backend.models.EstadoResolucion.APROBADA :
-                com.segar.backend.models.EstadoResolucion.RECHAZADA)
+                com.segar.backend.shared.domain.EstadoResolucion.APROBADA :
+                com.segar.backend.shared.domain.EstadoResolucion.RECHAZADA)
             .observaciones(observaciones)
             .tramiteId(tramiteId)
             .fechaNotificacion(LocalDateTime.now())
@@ -40,14 +40,14 @@ public class ResolucionServiceImpl {
         return mapearADTO(resolucionGuardada);
     }
 
-    @Override
+     
     public ResolucionDTO obtenerResolucionPorTramite(Long tramiteId) {
         return resolucionRepository.findByTramiteId(tramiteId)
             .map(this::mapearADTO)
             .orElse(null);
     }
 
-    @Override
+     
     public String generarNumeroResolucion() {
         int year = LocalDateTime.now().getYear();
         // Usar count() simple en lugar de countByYear() que no existe
@@ -55,7 +55,7 @@ public class ResolucionServiceImpl {
         return String.format("%d-INVIMA-%04d", year, count);
     }
 
-    @Override
+     
     public void notificarResolucion(Long resolucionId) {
         // Implementar lógica de notificación
         // Por ahora, actualizar fecha de notificación

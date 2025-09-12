@@ -1,10 +1,6 @@
 package com.segar.backend.tramites.api;
 
-import com.segar.backend.notificaciones.api.dto.NotificationDTO;
-import com.segar.backend.notificaciones.api.dto.NotificationSettingsDTO;
-import com.segar.backend.tramites.api.dto.RequirementDTO;
-import com.segar.backend.tramites.api.dto.TimelineEventDTO;
-import com.segar.backend.tramites.api.dto.TrackingDTO;
+import com.segar.backend.tramites.api.dto.*;
 
 
 import com.segar.backend.tramites.service.TramiteServiceImpl;

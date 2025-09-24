@@ -3,7 +3,6 @@
   <component name="ProjectModuleManager">
     <modules>
       <module fileurl="file://$PROJECT_DIR$/.idea/SEGAR-BackEnd.iml" filepath="$PROJECT_DIR$/.idea/SEGAR-BackEnd.iml" />
-      <module fileurl="file://$PROJECT_DIR$/segar-backend/backend.iml" filepath="$PROJECT_DIR$/segar-backend/backend.iml" />
     </modules>
   </component>
 </project>

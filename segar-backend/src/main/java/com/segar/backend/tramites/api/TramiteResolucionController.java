@@ -18,7 +18,7 @@ import java.util.List;
  * Implementa los endpoints exactos requeridos por el frontend
  */
 @RestController
-@RequestMapping("/api/tramites")
+@RequestMapping("/tramites")
 @CrossOrigin(origins = "http://localhost:4200")
 @RequiredArgsConstructor
 public class TramiteResolucionController {

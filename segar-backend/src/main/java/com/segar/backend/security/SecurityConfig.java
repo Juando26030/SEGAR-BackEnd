@@ -29,9 +29,15 @@ public class SecurityConfig {
                                 "/swagger-ui.html",
                                 "/swagger-ui/**",
                                 "/producto/**",
-                                "/api/tramites/**"
+                                "/api/tramites/**",
+                                "/api/documentos/**",
+                                "/api/empresas/**",
+                                "/api/pagos/**",
+                                "/api/solicitudes/**",
+                                "/api/validaciones/**",
+                                "/api/radicacion/**"
                         ).permitAll()
-                        .anyRequest().authenticated()
+                        .anyRequest().permitAll()
                 )
                 .cors(Customizer.withDefaults());
         return http.build();
@@ -40,7 +46,7 @@ public class SecurityConfig {
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration config = new CorsConfiguration();
-        config.setAllowedOrigins(List.of("http://localhost:4200"));
+        config.setAllowedOrigins(List.of("http://localhost:4200", "http://localhost:3000"));
         config.setAllowedMethods(List.of("GET","POST","PUT","DELETE","OPTIONS"));
         config.setAllowedHeaders(List.of("*"));
         config.setAllowCredentials(true);

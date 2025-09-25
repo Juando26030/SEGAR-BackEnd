@@ -16,6 +16,7 @@ import com.segar.backend.tramites.api.dto.TimelineEventDTO;
 import com.segar.backend.tramites.api.dto.TrackingDTO;
 import com.segar.backend.tramites.infrastructure.*;
 
+import com.segar.backend.services.interfaces.TramiteService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.lang.Nullable;
@@ -33,7 +34,7 @@ import java.util.List;
 import java.util.Locale;
 
 @Service
-public class TramiteServiceImpl {
+public class TramiteServiceImpl implements TramiteService {
 
     @Autowired
     private TramiteRepository tramiteRepo;

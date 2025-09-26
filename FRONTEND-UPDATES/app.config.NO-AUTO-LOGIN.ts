@@ -7,8 +7,8 @@ import { routes } from './app.routes';
 import { AuthService } from './auth/services/auth.service';
 import { authInterceptor } from './auth/interceptors/auth.interceptor';
 
-// 🚫 NO inicializar Keycloak automáticamente
-// Se inicializará solo cuando el usuario haga login en tu componente
+// ✅ SIN APP_INITIALIZER - No inicializa Keycloak automáticamente
+// ✅ Solo inicializa cuando el usuario haga login manual
 
 export const appConfig: ApplicationConfig = {
   providers: [
@@ -17,6 +17,6 @@ export const appConfig: ApplicationConfig = {
     provideClientHydration(),
     provideHttpClient(withInterceptors([authInterceptor])),
     AuthService
-    // ← Removido APP_INITIALIZER para evitar auto-login de Keycloak
+    // ❌ REMOVIDO: APP_INITIALIZER que causaba redirección automática
   ]
 };

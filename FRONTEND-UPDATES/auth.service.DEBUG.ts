@@ -19,10 +19,11 @@ export class AuthService {
 
   constructor() {}
 
-  // 🔧 Inicialización manual de Keycloak (sin auto-login)
+  // Inicialización manual de Keycloak (sin auto-login)
   async initKeycloakSilent(): Promise<void> {
     try {
       if (!this.keycloak) {
+        console.log('🔧 Inicializando Keycloak en modo silencioso...');
         this.keycloak = new Keycloak({
           url: 'http://localhost:8080',
           realm: 'segar',
@@ -36,7 +37,7 @@ export class AuthService {
           pkceMethod: 'S256'
         });
 
-        console.log('🔧 Keycloak inicializado en modo silencioso');
+        console.log('✅ Keycloak inicializado en modo silencioso');
       }
     } catch (error) {
       console.error('❌ Error inicializando Keycloak silencioso:', error);
@@ -52,7 +53,7 @@ export class AuthService {
       });
 
       const authenticated = await this.keycloak.init({
-        onLoad: 'check-sso',  // ← Cambio: No fuerza login automático
+        onLoad: 'check-sso',  // No fuerza login automático
         checkLoginIframe: false,
         pkceMethod: 'S256'
       });
@@ -92,7 +93,7 @@ export class AuthService {
       };
 
       this.userSubject.next(userInfo);
-      console.log('User profile loaded:', userInfo);
+      console.log('✅ User profile loaded:', userInfo);
     } catch (error) {
       console.error('Failed to load user profile', error);
     }
@@ -119,7 +120,9 @@ export class AuthService {
   }
 
   isAuthenticated(): boolean {
-    return !!this.keycloak?.authenticated;
+    const authenticated = !!this.keycloak?.authenticated;
+    console.log('🔍 AuthService.isAuthenticated():', authenticated);
+    return authenticated;
   }
 
   hasRole(role: string): boolean {
@@ -139,10 +142,12 @@ export class AuthService {
     return this.userSubject.value;
   }
 
-  // 🔐 Método para login con credenciales (Resource Owner Password Flow)
+  // Método para login con credenciales (Resource Owner Password Flow)
   async loginWithCredentials(username: string, password: string): Promise<boolean> {
     try {
-      // 🔧 Asegurar que Keycloak esté inicializado silenciosamente
+      console.log('🔐 Iniciando login con credenciales para:', username);
+      
+      // Asegurar que Keycloak esté inicializado silenciosamente
       await this.initKeycloakSilent();
       
       const response = await fetch('http://localhost:8080/realms/segar/protocol/openid-connect/token', {
@@ -161,6 +166,7 @@ export class AuthService {
 
       if (response.ok) {
         const tokenData = await response.json();
+        console.log('✅ Token obtenido exitosamente');
         
         // Configurar Keycloak con el token obtenido
         if (!this.keycloak) {
@@ -182,6 +188,7 @@ export class AuthService {
         await this.loadUserProfile();
 
         console.log('✅ Login with credentials successful');
+        console.log('🔍 isAuthenticated después del login:', this.isAuthenticated());
         return true;
       } else {
         console.error('❌ Login failed:', response.status, response.statusText);
@@ -193,7 +200,7 @@ export class AuthService {
     }
   }
 
-  // 🔧 Método auxiliar para parsear JWT
+  // Método auxiliar para parsear JWT
   private parseJwt(token: string): any {
     try {
       const base64Url = token.split('.')[1];
@@ -210,6 +217,7 @@ export class AuthService {
 
   async logout(): Promise<void> {
     if (this.keycloak) {
+      console.log('🚪 Cerrando sesión...');
       this.userSubject.next(null);
       await this.keycloak.logout({
         redirectUri: window.location.origin
@@ -220,12 +228,24 @@ export class AuthService {
   // Método para debugging
   logTokenInfo(): void {
     if (this.keycloak?.tokenParsed) {
-      console.log('Token info:', {
+      console.log('📋 Token info:', {
         username: this.keycloak.tokenParsed['preferred_username'],
         roles: this.keycloak.tokenParsed.resource_access?.['segar-backend']?.roles,
         exp: new Date(this.keycloak.tokenParsed.exp! * 1000),
         token: this.keycloak.token?.substring(0, 50) + '...'
       });
+    } else {
+      console.log('❌ No hay token disponible');
     }
+  }
+
+  // Método para debugging completo
+  debugAuthState(): void {
+    console.log('🔍 DEBUG AUTH STATE:');
+    console.log('- Keycloak instance:', !!this.keycloak);
+    console.log('- Authenticated:', this.isAuthenticated());
+    console.log('- Has token:', !!this.keycloak?.token);
+    console.log('- User info:', this.getUser());
+    this.logTokenInfo();
   }
 }

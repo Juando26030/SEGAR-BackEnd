@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8"/>
+    <title th:text="${plantilla?.name ?: 'Documento'}">Documento</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            font-size: 12px;
+            line-height: 1.4;
+            margin: 20px;
+        }
+        .header {
+            text-align: center;
+            border-bottom: 2px solid #333;
+            padding-bottom: 10px;
+            margin-bottom: 20px;
+        }
+        .logo {
+            float: left;
+            font-weight: bold;
+            font-size: 16px;
+        }
+        .title {
+            text-align: center;
+            font-size: 18px;
+            font-weight: bold;
+            margin: 10px 0;
+            text-transform: uppercase;
+        }
+        .section {
+            margin-bottom: 15px;
+            border: 1px solid #ccc;
+            padding: 10px;
+        }
+        .section-title {
+            background-color: #f0f0f0;
+            font-weight: bold;
+            padding: 5px;
+            margin: -10px -10px 10px -10px;
+        }
+        .field-group {
+            display: flex;
+            margin-bottom: 8px;
+        }
+        .field-label {
+            font-weight: bold;
+            width: 40%;
+            min-width: 150px;
+        }
+        .field-value {
+            flex: 1;
+        }
+        .footer {
+            margin-top: 30px;
+            border-top: 1px solid #333;
+            padding-top: 10px;
+            font-size: 10px;
+            text-align: center;
+        }
+        .clearfix {
+            clear: both;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <div class="logo">SEGAR - Sistema de Gestión de Registros Sanitarios</div>
+        <div class="clearfix"></div>
+        <div class="title" th:text="${plantilla?.name}">DOCUMENTO GENÉRICO</div>
+    </div>
+
+    <!-- Información del Trámite -->
+    <div class="section">
+        <div class="section-title">INFORMACIÓN DEL TRÁMITE</div>
+        <div class="field-group">
+            <div class="field-label">Número de Trámite:</div>
+            <div class="field-value" th:text="${tramite?.id}">-</div>
+        </div>
+        <div class="field-group">
+            <div class="field-label">Tipo de Trámite:</div>
+            <div class="field-value" th:text="${tramite?.tipoTramite}">-</div>
+        </div>
+        <div class="field-group">
+            <div class="field-label">Estado:</div>
+            <div class="field-value" th:text="${tramite?.estado}">-</div>
+        </div>
+    </div>
+
+    <!-- Descripción del Documento -->
+    <div class="section" th:if="${plantilla?.description}">
+        <div class="section-title">DESCRIPCIÓN</div>
+        <div class="field-value" th:text="${plantilla?.description}">-</div>
+    </div>
+
+    <!-- Datos del Formulario -->
+    <div class="section" th:if="${datosFormulario}">
+        <div class="section-title">DATOS DEL DOCUMENTO</div>
+        <div th:each="entry : ${datosFormulario}" class="field-group">
+            <div class="field-label" th:text="${entry.key}">Campo:</div>
+            <div class="field-value" th:text="${entry.value}">Valor</div>
+        </div>
+    </div>
+
+    <!-- Información de Generación -->
+    <div class="section">
+        <div class="section-title">INFORMACIÓN DE GENERACIÓN</div>
+        <div class="field-group">
+            <div class="field-label">Fecha de Generación:</div>
+            <div class="field-value" th:text="${#temporals.format(fechaGeneracion, formatoFecha)}">-</div>
+        </div>
+        <div class="field-group">
+            <div class="field-label">Versión del Documento:</div>
+            <div class="field-value" th:text="${documento?.version ?: '1'}">1</div>
+        </div>
+        <div class="field-group">
+            <div class="field-label">Estado del Documento:</div>
+            <div class="field-value" th:text="${documento?.status}">-</div>
+        </div>
+    </div>
+
+    <div class="footer">
+        <p>Documento generado automáticamente por el Sistema SEGAR</p>
+        <p>Fecha de generación: <span th:text="${#temporals.format(fechaGeneracion, 'dd/MM/yyyy HH:mm:ss')}"></span></p>
+        <p>Este documento es una representación fiel de la información registrada en el sistema</p>
+    </div>
+</body>
+</html>

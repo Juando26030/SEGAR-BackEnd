@@ -1,0 +1,231 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8"/>
+    <title>Ficha Técnica del Producto</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            font-size: 12px;
+            line-height: 1.4;
+            margin: 20px;
+        }
+        .header {
+            text-align: center;
+            border-bottom: 2px solid #333;
+            padding-bottom: 10px;
+            margin-bottom: 20px;
+        }
+        .logo {
+            float: left;
+            font-weight: bold;
+            font-size: 16px;
+        }
+        .title {
+            text-align: center;
+            font-size: 18px;
+            font-weight: bold;
+            margin: 10px 0;
+        }
+        .section {
+            margin-bottom: 15px;
+            border: 1px solid #ccc;
+            padding: 10px;
+        }
+        .section-title {
+            background-color: #f0f0f0;
+            font-weight: bold;
+            padding: 5px;
+            margin: -10px -10px 10px -10px;
+        }
+        .field-group {
+            display: flex;
+            margin-bottom: 8px;
+        }
+        .field-label {
+            font-weight: bold;
+            width: 40%;
+            min-width: 150px;
+        }
+        .field-value {
+            flex: 1;
+        }
+        .table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 10px 0;
+        }
+        .table th, .table td {
+            border: 1px solid #333;
+            padding: 5px;
+            text-align: left;
+        }
+        .table th {
+            background-color: #f0f0f0;
+            font-weight: bold;
+        }
+        .footer {
+            margin-top: 30px;
+            border-top: 1px solid #333;
+            padding-top: 10px;
+            font-size: 10px;
+            text-align: center;
+        }
+        .clearfix {
+            clear: both;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <div class="logo">SEGAR - Sistema de Gestión de Registros Sanitarios</div>
+        <div class="clearfix"></div>
+        <div class="title">FICHA TÉCNICA DEL PRODUCTO</div>
+    </div>
+
+    <!-- Información del Trámite -->
+    <div class="section">
+        <div class="section-title">INFORMACIÓN DEL TRÁMITE</div>
+        <div class="field-group">
+            <div class="field-label">Número de Trámite:</div>
+            <div class="field-value" th:text="${tramite?.id}">-</div>
+        </div>
+        <div class="field-group">
+            <div class="field-label">Tipo de Trámite:</div>
+            <div class="field-value" th:text="${tramite?.tipoTramite}">-</div>
+        </div>
+        <div class="field-group">
+            <div class="field-label">Fecha de Generación:</div>
+            <div class="field-value" th:text="${#temporals.format(fechaGeneracion, formatoFecha)}">-</div>
+        </div>
+    </div>
+
+    <!-- Información Básica del Producto -->
+    <div class="section">
+        <div class="section-title">INFORMACIÓN BÁSICA DEL PRODUCTO</div>
+        <div class="field-group">
+            <div class="field-label">Nombre Comercial:</div>
+            <div class="field-value" th:text="${datosFormulario?.nombre_comercial}">-</div>
+        </div>
+        <div class="field-group">
+            <div class="field-label">Nombre Técnico/INCI:</div>
+            <div class="field-value" th:text="${datosFormulario?.nombre_tecnico}">-</div>
+        </div>
+        <div class="field-group">
+            <div class="field-label">Descripción:</div>
+            <div class="field-value" th:text="${datosFormulario?.descripcion_producto}">-</div>
+        </div>
+        <div class="field-group">
+            <div class="field-label">Presentación Comercial:</div>
+            <div class="field-value" th:text="${datosFormulario?.presentacion_comercial}">-</div>
+        </div>
+        <div class="field-group">
+            <div class="field-label">País de Origen:</div>
+            <div class="field-value" th:text="${datosFormulario?.pais_origen}">-</div>
+        </div>
+    </div>
+
+    <!-- Composición -->
+    <div class="section">
+        <div class="section-title">COMPOSICIÓN</div>
+        <div class="field-group">
+            <div class="field-label">Composición Cualitativa:</div>
+            <div class="field-value" th:text="${datosFormulario?.composicion_cualitativa}">-</div>
+        </div>
+
+        <div th:if="${datosFormulario?.composicion_cuantitativa}">
+            <strong>Composición Cuantitativa:</strong>
+            <table class="table">
+                <thead>
+                    <tr>
+                        <th>Ingrediente</th>
+                        <th>Porcentaje</th>
+                        <th>Unidad</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr th:each="item : ${datosFormulario?.composicion_cuantitativa}">
+                        <td th:text="${item.ingrediente}">-</td>
+                        <td th:text="${item.porcentaje}">-</td>
+                        <td th:text="${item.unidad}">-</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- Proceso de Fabricación -->
+    <div class="section">
+        <div class="section-title">PROCESO DE FABRICACIÓN</div>
+        <div class="field-group">
+            <div class="field-label">Proceso:</div>
+            <div class="field-value" th:text="${datosFormulario?.proceso_fabricacion}">-</div>
+        </div>
+    </div>
+
+    <!-- Especificaciones -->
+    <div class="section">
+        <div class="section-title">ESPECIFICACIONES DEL PRODUCTO</div>
+        <div class="field-group">
+            <div class="field-label">Vida Útil:</div>
+            <div class="field-value">
+                <span th:text="${datosFormulario?.vida_util}">-</span> días
+            </div>
+        </div>
+        <div class="field-group">
+            <div class="field-label">Condiciones de Almacenamiento:</div>
+            <div class="field-value" th:text="${datosFormulario?.condiciones_almacenamiento}">-</div>
+        </div>
+
+        <div th:if="${datosFormulario?.especificaciones_fisicoquimicas}">
+            <strong>Especificaciones Fisicoquímicas:</strong>
+            <table class="table">
+                <thead>
+                    <tr>
+                        <th>Parámetro</th>
+                        <th>Unidad</th>
+                        <th>Límite Mín.</th>
+                        <th>Límite Máx.</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr th:each="spec : ${datosFormulario?.especificaciones_fisicoquimicas}">
+                        <td th:text="${spec.parametro}">-</td>
+                        <td th:text="${spec.unidad}">-</td>
+                        <td th:text="${spec.limite_min}">-</td>
+                        <td th:text="${spec.limite_max}">-</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+
+        <div th:if="${datosFormulario?.especificaciones_microbiologicas}">
+            <strong>Especificaciones Microbiológicas:</strong>
+            <table class="table">
+                <thead>
+                    <tr>
+                        <th>Microorganismo</th>
+                        <th>Límite</th>
+                        <th>Unidad</th>
+                        <th>Método</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr th:each="micro : ${datosFormulario?.especificaciones_microbiologicas}">
+                        <td th:text="${micro.microorganismo}">-</td>
+                        <td th:text="${micro.limite}">-</td>
+                        <td th:text="${micro.unidad}">-</td>
+                        <td th:text="${micro.metodo}">-</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <div class="footer">
+        <p>Documento generado automáticamente por el Sistema SEGAR</p>
+        <p>Fecha de generación: <span th:text="${#temporals.format(fechaGeneracion, 'dd/MM/yyyy HH:mm:ss')}"></span></p>
+        <p>Este documento es una representación fiel de la información registrada en el sistema</p>
+    </div>
+</body>
+</html>

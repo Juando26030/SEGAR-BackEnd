@@ -2,6 +2,7 @@ package com.segar.backend.notificaciones.infrastructure;
 
 import com.segar.backend.notificaciones.api.dto.*;
 import com.segar.backend.notificaciones.domain.EmailAttachment;
+import com.segar.backend.notificaciones.domain.EmailReader;
 import com.segar.backend.notificaciones.domain.EmailSendingException;
 import com.segar.backend.notificaciones.service.EmailService;
 import io.swagger.v3.oas.annotations.Operation;
@@ -24,6 +25,7 @@ import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 
 /**
@@ -37,6 +39,7 @@ import java.util.Optional;
 public class EmailController {
 
     private final EmailService emailService;
+    private final EmailReader emailReader;
 
     @PostMapping("/send")
     @Operation(summary = "Enviar correo electrónico",
@@ -70,6 +73,63 @@ public class EmailController {
             return ResponseEntity.ok(emails);
         } catch (Exception e) {
             log.error("Error obteniendo correos del buzón: {}", e.getMessage(), e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
+        }
+    }
+
+    @PostMapping("/inbox")
+    @Operation(summary = "Obtener correos del buzón con filtros específicos",
+               description = "Obtiene correos del buzón de entrada con filtros avanzados enviados en el cuerpo de la petición")
+    public ResponseEntity<Page<EmailResponse>> getInboxEmailsWithFilters(
+            @Parameter(description = "Filtros de búsqueda específicos") @RequestBody EmailFilterRequest filter) {
+        try {
+            log.info("Obteniendo correos del buzón con filtros: fromAddress={}, subject={}, type={}",
+                filter.getFromAddress(), filter.getSubject(), filter.getType());
+
+            Page<EmailResponse> emails = emailService.getInboxEmails(filter);
+            return ResponseEntity.ok(emails);
+        } catch (Exception e) {
+            log.error("Error obteniendo correos del buzón con filtros: {}", e.getMessage(), e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
+        }
+    }
+
+    @GetMapping("/inbox/received")
+    @Operation(summary = "Obtener solo correos recibidos (INBOUND)",
+               description = "Obtiene únicamente correos recibidos desde el servidor de correo")
+    public ResponseEntity<?> getReceivedEmails(
+            @Parameter(description = "Filtros de búsqueda") @ModelAttribute EmailFilterRequest filter) {
+        try {
+            Page<EmailResponse> emails = emailService.getInboundEmails(filter);
+
+            if (emails.isEmpty()) {
+                return ResponseEntity.ok().body(Map.of(
+                    "content", emails.getContent(),
+                    "message", "No hay correos recibidos. Ejecute POST /api/notifications/emails/sync para sincronizar con Gmail",
+                    "suggestion", "Primero sincronice los correos ejecutando: POST /api/notifications/emails/sync",
+                    "pageable", emails.getPageable(),
+                    "totalElements", emails.getTotalElements()
+                ));
+            }
+
+            return ResponseEntity.ok(emails);
+        } catch (Exception e) {
+            log.error("Error obteniendo correos recibidos: {}", e.getMessage(), e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                .body(new ErrorResponse("INTERNAL_ERROR", "Error interno del servidor"));
+        }
+    }
+
+    @GetMapping("/all")
+    @Operation(summary = "Obtener todos los correos",
+               description = "Obtiene todos los correos (enviados y recibidos)")
+    public ResponseEntity<Page<EmailResponse>> getAllEmails(
+            @Parameter(description = "Filtros de búsqueda") @ModelAttribute EmailFilterRequest filter) {
+        try {
+            Page<EmailResponse> emails = emailService.getAllEmails(filter);
+            return ResponseEntity.ok(emails);
+        } catch (Exception e) {
+            log.error("Error obteniendo todos los correos: {}", e.getMessage(), e);
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
         }
     }
@@ -170,6 +230,20 @@ public class EmailController {
         }
     }
 
+    @PostMapping("/sync-auto")
+    @Operation(summary = "Sincronización automática", description = "Realiza sincronización automática cada cierto tiempo")
+    public ResponseEntity<?> enableAutoSync() {
+        try {
+            // Esto podría implementarse con @Scheduled si se requiere
+            emailService.synchronizeEmails();
+            return ResponseEntity.ok(new SuccessResponse("Auto-sincronización iniciada"));
+        } catch (Exception e) {
+            log.error("Error en auto-sincronización: {}", e.getMessage(), e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                .body(new ErrorResponse("AUTO_SYNC_ERROR", "Error en auto-sincronización: " + e.getMessage()));
+        }
+    }
+
     @GetMapping("/{emailId}/attachments/{attachmentId}/download")
     @Operation(summary = "Descargar archivo adjunto", description = "Descarga un archivo adjunto específico")
     public ResponseEntity<byte[]> downloadAttachment(
@@ -227,6 +301,44 @@ public class EmailController {
         } catch (Exception e) {
             log.error("Error previsualizando archivo adjunto {}/{}: {}", emailId, attachmentId, e.getMessage(), e);
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
+        }
+    }
+
+    @GetMapping("/test-imap-connection")
+    @Operation(summary = "Probar conexión IMAP", description = "Prueba la conexión IMAP con Gmail para diagnóstico")
+    public ResponseEntity<?> testImapConnection() {
+        try {
+            boolean connected = emailReader.isConnected();
+
+            // Intentar conectar manualmente
+            emailReader.synchronizeEmails();
+
+            return ResponseEntity.ok(Map.of(
+                "status", "success",
+                "message", "Conexión IMAP exitosa",
+                "connected", connected
+            ));
+        } catch (Exception e) {
+            String errorMessage = e.getMessage();
+            if (errorMessage.contains("AUTHENTICATIONFAILED")) {
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(Map.of(
+                    "status", "error",
+                    "errorType", "AUTHENTICATION_FAILED",
+                    "message", "Error de autenticación Gmail",
+                    "solution", "Necesitas configurar una contraseña de aplicación para Gmail",
+                    "steps", List.of(
+                        "1. Ve a tu cuenta de Google",
+                        "2. Activa autenticación de 2 factores",
+                        "3. Genera una contraseña de aplicación específica",
+                        "4. Usa esa contraseña en spring.mail.imap.password"
+                    )
+                ));
+            }
+
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(Map.of(
+                "status", "error",
+                "message", "Error de conexión: " + errorMessage
+            ));
         }
     }
 

@@ -47,8 +47,30 @@ public class ImapEmailReader implements EmailReader {
             Folder inbox = store.getFolder("INBOX");
             inbox.open(Folder.READ_ONLY);
 
-            // Buscar correos no leídos
-            Message[] messages = inbox.search(new FlagTerm(new Flags(Flags.Flag.SEEN), false));
+            // Buscar correos no leídos más recientes (últimos 30 días)
+            Calendar cal = Calendar.getInstance();
+            cal.add(Calendar.DAY_OF_MONTH, -30);
+            Date thirtyDaysAgo = cal.getTime();
+
+            SearchTerm dateTerm = new ReceivedDateTerm(ComparisonTerm.GE, thirtyDaysAgo);
+            SearchTerm unreadTerm = new FlagTerm(new Flags(Flags.Flag.SEEN), false);
+            SearchTerm combinedTerm = new AndTerm(dateTerm, unreadTerm);
+
+            Message[] messages = inbox.search(combinedTerm);
+
+            // Ordenar por fecha de recepción (más recientes primero)
+            Arrays.sort(messages, (a, b) -> {
+                try {
+                    Date dateA = a.getReceivedDate();
+                    Date dateB = b.getReceivedDate();
+                    if (dateA == null && dateB == null) return 0;
+                    if (dateA == null) return 1;
+                    if (dateB == null) return -1;
+                    return dateB.compareTo(dateA);
+                } catch (MessagingException e) {
+                    return 0;
+                }
+            });
 
             List<Email> emails = new ArrayList<>();
             for (Message message : messages) {
@@ -67,6 +89,8 @@ public class ImapEmailReader implements EmailReader {
         } catch (Exception e) {
             log.error("Error leyendo correos nuevos: {}", e.getMessage(), e);
             throw new EmailReadingException("Error leyendo correos nuevos: " + e.getMessage(), e);
+        } finally {
+            closeStore();
         }
     }
 
@@ -77,13 +101,14 @@ public class ImapEmailReader implements EmailReader {
             Folder inbox = store.getFolder("INBOX");
             inbox.open(Folder.READ_ONLY);
 
-            // Convertir LocalDateTime a Date
             Date start = Date.from(startDate.atZone(ZoneId.systemDefault()).toInstant());
             Date end = Date.from(endDate.atZone(ZoneId.systemDefault()).toInstant());
 
-            // Buscar correos en el rango de fechas
-            Message[] messages = inbox.search(new ReceivedDateTerm(ComparisonTerm.GE, start));
-            messages = inbox.search(new ReceivedDateTerm(ComparisonTerm.LE, end), messages);
+            SearchTerm startTerm = new ReceivedDateTerm(ComparisonTerm.GE, start);
+            SearchTerm endTerm = new ReceivedDateTerm(ComparisonTerm.LE, end);
+            SearchTerm combinedTerm = new AndTerm(startTerm, endTerm);
+
+            Message[] messages = inbox.search(combinedTerm);
 
             List<Email> emails = new ArrayList<>();
             for (Message message : messages) {
@@ -101,6 +126,8 @@ public class ImapEmailReader implements EmailReader {
         } catch (Exception e) {
             log.error("Error leyendo correos por rango de fechas: {}", e.getMessage(), e);
             throw new EmailReadingException("Error leyendo correos por rango de fechas: " + e.getMessage(), e);
+        } finally {
+            closeStore();
         }
     }
 
@@ -111,7 +138,6 @@ public class ImapEmailReader implements EmailReader {
             Folder inbox = store.getFolder("INBOX");
             inbox.open(Folder.READ_ONLY);
 
-            // Buscar por Message-ID
             SearchTerm searchTerm = new HeaderTerm("Message-ID", messageId);
             Message[] messages = inbox.search(searchTerm);
 
@@ -127,76 +153,24 @@ public class ImapEmailReader implements EmailReader {
         } catch (Exception e) {
             log.error("Error leyendo correo por Message-ID: {}", e.getMessage(), e);
             throw new EmailReadingException("Error leyendo correo por Message-ID: " + e.getMessage(), e);
+        } finally {
+            closeStore();
         }
     }
 
     @Override
     public void markEmailAsRead(String messageId) throws EmailReadingException {
-        try {
-            connectToStore();
-            Folder inbox = store.getFolder("INBOX");
-            inbox.open(Folder.READ_WRITE);
-
-            SearchTerm searchTerm = new HeaderTerm("Message-ID", messageId);
-            Message[] messages = inbox.search(searchTerm);
-
-            if (messages.length > 0) {
-                messages[0].setFlag(Flags.Flag.SEEN, true);
-                log.info("Correo marcado como leído: {}", messageId);
-            }
-
-            inbox.close(true);
-
-        } catch (Exception e) {
-            log.error("Error marcando correo como leído: {}", e.getMessage(), e);
-            throw new EmailReadingException("Error marcando correo como leído: " + e.getMessage(), e);
-        }
+        updateEmailFlag(messageId, Flags.Flag.SEEN, true);
     }
 
     @Override
     public void markEmailAsUnread(String messageId) throws EmailReadingException {
-        try {
-            connectToStore();
-            Folder inbox = store.getFolder("INBOX");
-            inbox.open(Folder.READ_WRITE);
-
-            SearchTerm searchTerm = new HeaderTerm("Message-ID", messageId);
-            Message[] messages = inbox.search(searchTerm);
-
-            if (messages.length > 0) {
-                messages[0].setFlag(Flags.Flag.SEEN, false);
-                log.info("Correo marcado como no leído: {}", messageId);
-            }
-
-            inbox.close(true);
-
-        } catch (Exception e) {
-            log.error("Error marcando correo como no leído: {}", e.getMessage(), e);
-            throw new EmailReadingException("Error marcando correo como no leído: " + e.getMessage(), e);
-        }
+        updateEmailFlag(messageId, Flags.Flag.SEEN, false);
     }
 
     @Override
     public void deleteEmailFromServer(String messageId) throws EmailReadingException {
-        try {
-            connectToStore();
-            Folder inbox = store.getFolder("INBOX");
-            inbox.open(Folder.READ_WRITE);
-
-            SearchTerm searchTerm = new HeaderTerm("Message-ID", messageId);
-            Message[] messages = inbox.search(searchTerm);
-
-            if (messages.length > 0) {
-                messages[0].setFlag(Flags.Flag.DELETED, true);
-                log.info("Correo eliminado del servidor: {}", messageId);
-            }
-
-            inbox.close(true);
-
-        } catch (Exception e) {
-            log.error("Error eliminando correo del servidor: {}", e.getMessage(), e);
-            throw new EmailReadingException("Error eliminando correo del servidor: " + e.getMessage(), e);
-        }
+        updateEmailFlag(messageId, Flags.Flag.DELETED, true);
     }
 
     @Override
@@ -206,23 +180,72 @@ public class ImapEmailReader implements EmailReader {
 
     @Override
     public void synchronizeEmails() throws EmailReadingException {
-        readNewEmails(); // Por simplicidad, usa la misma lógica que readNewEmails
+        log.info("Iniciando sincronización completa de correos");
+        readNewEmails();
     }
 
-    // Métodos privados de utilidad
+    // Métodos privados mejorados
 
     private void connectToStore() throws MessagingException {
         if (store == null || !store.isConnected()) {
             Properties properties = new Properties();
+
+            // Configuración IMAP específica para Gmail
             properties.put("mail.store.protocol", "imaps");
             properties.put("mail.imaps.ssl.enable", "true");
+            properties.put("mail.imaps.ssl.trust", "*");
             properties.put("mail.imaps.host", imapHost);
-            properties.put("mail.imaps.port", imapPort);
+            properties.put("mail.imaps.port", String.valueOf(imapPort));
+            properties.put("mail.imaps.connectionpoolsize", "10");
+            properties.put("mail.imaps.connectionpooltimeout", "300000");
+            properties.put("mail.imaps.timeout", "300000");
+            properties.put("mail.imaps.connectiontimeout", "300000");
+
+            // Configuración adicional para Gmail
+            properties.put("mail.imaps.ssl.protocols", "TLSv1.2");
+            properties.put("mail.imaps.auth", "true");
 
             Session session = Session.getInstance(properties);
             store = session.getStore("imaps");
             store.connect(imapHost, username, password);
-            log.debug("Conectado al servidor IMAP: {}", imapHost);
+            log.info("Conectado exitosamente al servidor IMAP: {}", imapHost);
+        }
+    }
+
+    private void closeStore() {
+        try {
+            if (store != null && store.isConnected()) {
+                store.close();
+                log.debug("Conexión IMAP cerrada");
+            }
+        } catch (MessagingException e) {
+            log.warn("Error cerrando conexión IMAP: {}", e.getMessage());
+        }
+    }
+
+    private void updateEmailFlag(String messageId, Flags.Flag flag, boolean value) throws EmailReadingException {
+        try {
+            connectToStore();
+            Folder inbox = store.getFolder("INBOX");
+            inbox.open(Folder.READ_WRITE);
+
+            SearchTerm searchTerm = new HeaderTerm("Message-ID", messageId);
+            Message[] messages = inbox.search(searchTerm);
+
+            if (messages.length > 0) {
+                messages[0].setFlag(flag, value);
+                log.info("Flag {} actualizada a {} para correo: {}", flag, value, messageId);
+            } else {
+                log.warn("No se encontró correo con Message-ID: {}", messageId);
+            }
+
+            inbox.close(true);
+
+        } catch (Exception e) {
+            log.error("Error actualizando flag del correo: {}", e.getMessage(), e);
+            throw new EmailReadingException("Error actualizando correo: " + e.getMessage(), e);
+        } finally {
+            closeStore();
         }
     }
 
@@ -232,10 +255,15 @@ public class ImapEmailReader implements EmailReader {
             Folder folder = store.getFolder(folderName);
             folder.open(Folder.READ_ONLY);
 
-            Message[] messages = folder.getMessages();
-            List<Email> emails = new ArrayList<>();
+            // Obtener solo los últimos 50 correos para evitar sobrecarga
+            Message[] allMessages = folder.getMessages();
+            int totalCount = allMessages.length;
+            int startIndex = Math.max(0, totalCount - 50);
 
-            for (Message message : messages) {
+            Message[] recentMessages = Arrays.copyOfRange(allMessages, startIndex, totalCount);
+
+            List<Email> emails = new ArrayList<>();
+            for (Message message : recentMessages) {
                 try {
                     Email email = convertMessageToEmail(message);
                     emails.add(email);
@@ -245,31 +273,51 @@ public class ImapEmailReader implements EmailReader {
             }
 
             folder.close(false);
+            log.info("Leídos {} correos de la carpeta {}", emails.size(), folderName);
             return emails;
 
         } catch (Exception e) {
             log.error("Error leyendo correos de la carpeta {}: {}", folderName, e.getMessage(), e);
             throw new EmailReadingException("Error leyendo correos: " + e.getMessage(), e);
+        } finally {
+            closeStore();
         }
     }
 
     private Email convertMessageToEmail(Message message) throws MessagingException, IOException {
-        Email email = Email.builder()
-            .fromAddress(message.getFrom()[0].toString())
-            .toAddresses(Arrays.toString(message.getAllRecipients()))
-            .subject(message.getSubject())
-            .isRead(message.isSet(Flags.Flag.SEEN))
+        Email.EmailBuilder emailBuilder = Email.builder()
             .type(EmailType.INBOUND)
             .status(EmailStatus.RECEIVED)
+            .isRead(message.isSet(Flags.Flag.SEEN))
             .receivedDate(convertToLocalDateTime(message.getReceivedDate()))
-            .sentDate(convertToLocalDateTime(message.getSentDate()))
-            .build();
+            .sentDate(convertToLocalDateTime(message.getSentDate()));
 
-        // Obtener Message-ID si está disponible
+        // Configurar remitente
+        if (message.getFrom() != null && message.getFrom().length > 0) {
+            emailBuilder.fromAddress(message.getFrom()[0].toString());
+        }
+
+        // Configurar destinatarios
+        if (message.getAllRecipients() != null) {
+            emailBuilder.toAddresses(Arrays.toString(message.getAllRecipients()));
+        }
+
+        // Configurar asunto
+        emailBuilder.subject(message.getSubject() != null ? message.getSubject() : "Sin asunto");
+
+        // Obtener Message-ID
         String[] messageIds = message.getHeader("Message-ID");
         if (messageIds != null && messageIds.length > 0) {
-            email.setMessageId(messageIds[0]);
+            emailBuilder.messageId(messageIds[0]);
         }
+
+        // Obtener In-Reply-To
+        String[] inReplyToIds = message.getHeader("In-Reply-To");
+        if (inReplyToIds != null && inReplyToIds.length > 0) {
+            emailBuilder.inReplyTo(inReplyToIds[0]);
+        }
+
+        Email email = emailBuilder.build();
 
         // Procesar contenido
         processContent(message, email);
@@ -293,7 +341,7 @@ public class ImapEmailReader implements EmailReader {
             }
         } catch (Exception e) {
             log.warn("Error procesando contenido del mensaje: {}", e.getMessage());
-            email.setContent("Error procesando contenido");
+            email.setContent("Error procesando contenido: " + e.getMessage());
             email.setIsHtml(false);
         }
     }
@@ -311,7 +359,6 @@ public class ImapEmailReader implements EmailReader {
                 htmlContent.append(bodyPart.getContent().toString());
             } else if (Part.ATTACHMENT.equalsIgnoreCase(bodyPart.getDisposition()) ||
                        bodyPart.getFileName() != null) {
-                // Procesar archivo adjunto
                 processAttachment(bodyPart, email);
             }
         }
@@ -332,19 +379,21 @@ public class ImapEmailReader implements EmailReader {
     private void processAttachment(BodyPart bodyPart, Email email) throws MessagingException, IOException {
         String fileName = bodyPart.getFileName();
         if (fileName != null) {
-            ByteArrayOutputStream buffer = new ByteArrayOutputStream();
-            bodyPart.getInputStream().transferTo(buffer);
+            try (ByteArrayOutputStream buffer = new ByteArrayOutputStream()) {
+                bodyPart.getInputStream().transferTo(buffer);
 
-            EmailAttachment attachment = EmailAttachment.builder()
-                .email(email)
-                .fileName(fileName)
-                .contentType(bodyPart.getContentType())
-                .fileSize((long) buffer.size())
-                .fileContent(buffer.toByteArray())
-                .isInline(Part.INLINE.equalsIgnoreCase(bodyPart.getDisposition()))
-                .build();
+                EmailAttachment attachment = EmailAttachment.builder()
+                    .email(email)
+                    .fileName(fileName)
+                    .contentType(bodyPart.getContentType())
+                    .fileSize((long) buffer.size())
+                    .fileContent(buffer.toByteArray())
+                    .isInline(Part.INLINE.equalsIgnoreCase(bodyPart.getDisposition()))
+                    .build();
 
-            email.addAttachment(attachment);
+                email.addAttachment(attachment);
+                log.debug("Procesado archivo adjunto: {} ({} bytes)", fileName, buffer.size());
+            }
         }
     }
 

@@ -90,10 +90,78 @@ public class EmailService {
 
     /**
      * Obtiene correos del buzón de entrada con filtros
+     * Automáticamente sincroniza con el servidor IMAP antes de devolver resultados
      */
     @Transactional(readOnly = true)
     public Page<EmailResponse> getInboxEmails(EmailFilterRequest filter) {
         log.info("Obteniendo correos del buzón de entrada con filtros");
+
+        try {
+            // Primero intentar sincronizar correos desde el servidor IMAP
+            log.info("Sincronizando correos automáticamente antes de consultar inbox...");
+            synchronizeEmailsInternal();
+        } catch (Exception e) {
+            log.warn("No se pudieron sincronizar correos automáticamente: {}", e.getMessage());
+            // Continuamos con la consulta local aunque falle la sincronización
+        }
+
+        Pageable pageable = createPageable(filter);
+
+        Page<Email> emails = emailRepository.findByCriteria(
+            filter.getFromAddress(),
+            filter.getSubject(),
+            filter.getType(),
+            filter.getStatus(),
+            filter.getIsRead(),
+            filter.getStartDate(),
+            filter.getEndDate(),
+            pageable
+        );
+
+        // Si no hay correos después de la sincronización, informar al usuario
+        if (emails.isEmpty() && isFirstTimeQuery(filter)) {
+            log.info("No se encontraron correos después de la sincronización automática.");
+        }
+
+        return emails.map(this::mapToEmailResponse);
+    }
+
+    /**
+     * Método para obtener solo correos entrantes (INBOUND)
+     */
+    @Transactional(readOnly = true)
+    public Page<EmailResponse> getInboundEmails(EmailFilterRequest filter) {
+        log.info("Obteniendo correos entrantes (INBOUND) con filtros");
+
+        // Forzar el filtro para solo correos entrantes
+        filter.setType(EmailType.INBOUND);
+
+        Pageable pageable = createPageable(filter);
+
+        Page<Email> emails = emailRepository.findByCriteria(
+            filter.getFromAddress(),
+            filter.getSubject(),
+            EmailType.INBOUND, // Solo correos entrantes
+            filter.getStatus(),
+            filter.getIsRead(),
+            filter.getStartDate(),
+            filter.getEndDate(),
+            pageable
+        );
+
+        if (emails.isEmpty()) {
+            log.warn("No se encontraron correos entrantes. Ejecute POST /sync para sincronizar correos desde Gmail");
+        }
+
+        return emails.map(this::mapToEmailResponse);
+    }
+
+    /**
+     * Obtiene todos los correos (enviados y recibidos) - método original del inbox
+     */
+    @Transactional(readOnly = true)
+    public Page<EmailResponse> getAllEmails(EmailFilterRequest filter) {
+        log.info("Obteniendo todos los correos con filtros");
 
         Pageable pageable = createPageable(filter);
 
@@ -115,27 +183,53 @@ public class EmailService {
      * Sincroniza correos desde el servidor
      */
     public void synchronizeEmails() {
-        log.info("Sincronizando correos desde el servidor");
+        log.info("Iniciando sincronización de correos desde el servidor IMAP");
 
         try {
             List<Email> newEmails = emailReader.readNewEmails();
+            int savedCount = 0;
 
             for (Email email : newEmails) {
-                // Verificar si el correo ya existe
-                Optional<Email> existing = emailRepository.findByMessageId(email.getMessageId());
+                // Verificar si el correo ya existe por Message-ID
+                Optional<Email> existing = Optional.empty();
+                if (email.getMessageId() != null) {
+                    existing = emailRepository.findByMessageId(email.getMessageId());
+                }
+
                 if (existing.isEmpty()) {
+                    // Configurar valores para correo entrante
                     email.setType(EmailType.INBOUND);
                     email.setStatus(EmailStatus.RECEIVED);
-                    email.setReceivedDate(LocalDateTime.now());
-                    emailRepository.save(email);
-                    log.debug("Correo sincronizado: {}", email.getSubject());
+                    if (email.getReceivedDate() == null) {
+                        email.setReceivedDate(LocalDateTime.now());
+                    }
+
+                    // Guardar correo con sus adjuntos
+                    Email savedEmail = emailRepository.save(email);
+                    savedCount++;
+
+                    log.debug("Correo sincronizado: ID={}, Subject={}, From={}",
+                        savedEmail.getId(), savedEmail.getSubject(), savedEmail.getFromAddress());
+                } else {
+                    // Solo actualizar el estado de leído si cambió
+                    Email existingEmail = existing.get();
+                    if (!existingEmail.getIsRead().equals(email.getIsRead())) {
+                        existingEmail.setIsRead(email.getIsRead());
+                        emailRepository.save(existingEmail);
+                        log.debug("Actualizado estado de lectura para correo: {}", existingEmail.getSubject());
+                    }
                 }
             }
 
-            log.info("Sincronización completada. {} correos nuevos", newEmails.size());
+            log.info("Sincronización completada. {} correos nuevos guardados de {} encontrados",
+                savedCount, newEmails.size());
 
         } catch (EmailReadingException e) {
             log.error("Error al sincronizar correos: {}", e.getMessage(), e);
+            throw new RuntimeException("Error durante la sincronización de correos", e);
+        } catch (Exception e) {
+            log.error("Error inesperado durante la sincronización: {}", e.getMessage(), e);
+            throw new RuntimeException("Error inesperado durante la sincronización", e);
         }
     }
 
@@ -359,5 +453,73 @@ public class EmailService {
             return new ArrayList<>();
         }
         return List.of(addresses.split(",\\s*"));
+    }
+
+    private boolean isFirstTimeQuery(EmailFilterRequest filter) {
+        return filter.getFromAddress() == null &&
+               filter.getSubject() == null &&
+               filter.getType() == null &&
+               filter.getStatus() == null &&
+               filter.getStartDate() == null &&
+               filter.getEndDate() == null;
+    }
+
+    /**
+     * Método interno para sincronización sin transacción de solo lectura
+     */
+    @Transactional
+    public void synchronizeEmailsInternal() {
+        log.debug("Ejecutando sincronización interna de correos...");
+
+        try {
+            List<Email> newEmails = emailReader.readNewEmails();
+            int savedCount = 0;
+
+            for (Email email : newEmails) {
+                // Verificar si el correo ya existe por Message-ID
+                Optional<Email> existing = Optional.empty();
+                if (email.getMessageId() != null) {
+                    existing = emailRepository.findByMessageId(email.getMessageId());
+                }
+
+                if (existing.isEmpty()) {
+                    // Configurar valores para correo entrante
+                    email.setType(EmailType.INBOUND);
+                    email.setStatus(EmailStatus.RECEIVED);
+                    if (email.getReceivedDate() == null) {
+                        email.setReceivedDate(LocalDateTime.now());
+                    }
+
+                    // Guardar correo con sus adjuntos
+                    Email savedEmail = emailRepository.save(email);
+                    savedCount++;
+
+                    log.debug("Correo sincronizado automáticamente: ID={}, Subject={}, From={}",
+                        savedEmail.getId(), savedEmail.getSubject(), savedEmail.getFromAddress());
+                } else {
+                    // Solo actualizar el estado de leído si cambió
+                    Email existingEmail = existing.get();
+                    if (!existingEmail.getIsRead().equals(email.getIsRead())) {
+                        existingEmail.setIsRead(email.getIsRead());
+                        emailRepository.save(existingEmail);
+                        log.debug("Actualizado estado de lectura automáticamente para correo: {}", existingEmail.getSubject());
+                    }
+                }
+            }
+
+            if (savedCount > 0) {
+                log.info("Sincronización automática completada. {} correos nuevos guardados de {} encontrados",
+                    savedCount, newEmails.size());
+            } else {
+                log.debug("Sincronización automática completada. No hay correos nuevos.");
+            }
+
+        } catch (EmailReadingException e) {
+            log.warn("Error en sincronización automática: {}", e.getMessage());
+            throw new RuntimeException("Error durante la sincronización automática de correos", e);
+        } catch (Exception e) {
+            log.warn("Error inesperado en sincronización automática: {}", e.getMessage());
+            throw new RuntimeException("Error inesperado durante la sincronización automática", e);
+        }
     }
 }

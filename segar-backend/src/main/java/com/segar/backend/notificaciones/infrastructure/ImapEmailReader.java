@@ -1,5 +1,6 @@
 package com.segar.backend.notificaciones.infrastructure;
 
+import com.segar.backend.notificaciones.api.dto.EmailSearchFilter;
 import com.segar.backend.notificaciones.domain.*;
 import jakarta.mail.*;
 import jakarta.mail.internet.MimeMultipart;
@@ -47,16 +48,13 @@ public class ImapEmailReader implements EmailReader {
             Folder inbox = store.getFolder("INBOX");
             inbox.open(Folder.READ_ONLY);
 
-            // Buscar correos no leídos más recientes (últimos 30 días)
+            // Buscar correos más recientes (últimos 30 días) - TODOS, no solo no leídos
             Calendar cal = Calendar.getInstance();
             cal.add(Calendar.DAY_OF_MONTH, -30);
             Date thirtyDaysAgo = cal.getTime();
 
             SearchTerm dateTerm = new ReceivedDateTerm(ComparisonTerm.GE, thirtyDaysAgo);
-            SearchTerm unreadTerm = new FlagTerm(new Flags(Flags.Flag.SEEN), false);
-            SearchTerm combinedTerm = new AndTerm(dateTerm, unreadTerm);
-
-            Message[] messages = inbox.search(combinedTerm);
+            Message[] messages = inbox.search(dateTerm);
 
             // Ordenar por fecha de recepción (más recientes primero)
             Arrays.sort(messages, (a, b) -> {
@@ -83,12 +81,119 @@ public class ImapEmailReader implements EmailReader {
             }
 
             inbox.close(false);
-            log.info("Se encontraron {} correos nuevos", emails.size());
+            log.info("Se encontraron {} correos (todos, no solo no leídos)", emails.size());
             return emails;
 
         } catch (Exception e) {
             log.error("Error leyendo correos nuevos: {}", e.getMessage(), e);
             throw new EmailReadingException("Error leyendo correos nuevos: " + e.getMessage(), e);
+        } finally {
+            closeStore();
+        }
+    }
+
+    /**
+     * Lee correos con filtros específicos desde el servidor IMAP
+     */
+    public List<Email> readEmailsWithFilters(EmailSearchFilter filter) throws EmailReadingException {
+        try {
+            connectToStore();
+            Folder inbox = store.getFolder("INBOX");
+            inbox.open(Folder.READ_ONLY);
+
+            // Construir términos de búsqueda
+            List<SearchTerm> searchTerms = new ArrayList<>();
+
+            // Filtro por fecha
+            if (filter.getStartDate() != null) {
+                Date startDate = Date.from(filter.getStartDate().atZone(ZoneId.systemDefault()).toInstant());
+                searchTerms.add(new ReceivedDateTerm(ComparisonTerm.GE, startDate));
+            }
+            if (filter.getEndDate() != null) {
+                Date endDate = Date.from(filter.getEndDate().atZone(ZoneId.systemDefault()).toInstant());
+                searchTerms.add(new ReceivedDateTerm(ComparisonTerm.LE, endDate));
+            }
+
+            // Filtro por remitente
+            if (filter.getFromAddress() != null && !filter.getFromAddress().trim().isEmpty()) {
+                searchTerms.add(new FromStringTerm(filter.getFromAddress()));
+            }
+
+            // Filtro por asunto
+            if (filter.getSubject() != null && !filter.getSubject().trim().isEmpty()) {
+                searchTerms.add(new SubjectTerm(filter.getSubject()));
+            }
+
+            // Filtro por estado de lectura
+            if (filter.getIsRead() != null) {
+                Flags.Flag seenFlag = Flags.Flag.SEEN;
+                searchTerms.add(new FlagTerm(new Flags(seenFlag), filter.getIsRead()));
+            }
+
+            // Búsqueda de texto general
+            if (filter.getSearchText() != null && !filter.getSearchText().trim().isEmpty()) {
+                String searchText = filter.getSearchText().trim();
+                // Buscar en asunto O contenido OR remitente
+                SearchTerm subjectSearch = new SubjectTerm(searchText);
+                SearchTerm fromSearch = new FromStringTerm(searchText);
+                SearchTerm bodySearch = new BodyTerm(searchText);
+
+                SearchTerm textSearch = new OrTerm(new OrTerm(subjectSearch, fromSearch), bodySearch);
+                searchTerms.add(textSearch);
+            }
+
+            // Combinar todos los términos con AND
+            SearchTerm combinedTerm = null;
+            if (!searchTerms.isEmpty()) {
+                combinedTerm = searchTerms.get(0);
+                for (int i = 1; i < searchTerms.size(); i++) {
+                    combinedTerm = new AndTerm(combinedTerm, searchTerms.get(i));
+                }
+            }
+
+            // Buscar mensajes
+            Message[] messages;
+            if (combinedTerm != null) {
+                messages = inbox.search(combinedTerm);
+            } else {
+                // Si no hay filtros, obtener todos los mensajes recientes
+                Calendar cal = Calendar.getInstance();
+                cal.add(Calendar.DAY_OF_MONTH, -30);
+                Date thirtyDaysAgo = cal.getTime();
+                messages = inbox.search(new ReceivedDateTerm(ComparisonTerm.GE, thirtyDaysAgo));
+            }
+
+            // Ordenar por fecha
+            Arrays.sort(messages, (a, b) -> {
+                try {
+                    Date dateA = a.getReceivedDate();
+                    Date dateB = b.getReceivedDate();
+                    if (dateA == null && dateB == null) return 0;
+                    if (dateA == null) return 1;
+                    if (dateB == null) return -1;
+                    return dateB.compareTo(dateA);
+                } catch (MessagingException e) {
+                    return 0;
+                }
+            });
+
+            List<Email> emails = new ArrayList<>();
+            for (Message message : messages) {
+                try {
+                    Email email = convertMessageToEmail(message);
+                    emails.add(email);
+                } catch (Exception e) {
+                    log.warn("Error procesando mensaje: {}", e.getMessage());
+                }
+            }
+
+            inbox.close(false);
+            log.info("Búsqueda con filtros completada. {} correos encontrados", emails.size());
+            return emails;
+
+        } catch (Exception e) {
+            log.error("Error buscando correos con filtros: {}", e.getMessage(), e);
+            throw new EmailReadingException("Error buscando correos: " + e.getMessage(), e);
         } finally {
             closeStore();
         }
@@ -327,73 +432,457 @@ public class ImapEmailReader implements EmailReader {
 
     private void processContent(Message message, Email email) throws MessagingException, IOException {
         try {
+            log.debug("Procesando contenido del mensaje. Content-Type: {}", message.getContentType());
+
             if (message.isMimeType("text/plain")) {
-                email.setContent(message.getContent().toString());
+                String content = extractTextContent(message);
+                email.setContent(content);
                 email.setIsHtml(false);
+                log.debug("Contenido texto extraído: {} caracteres", content.length());
             } else if (message.isMimeType("text/html")) {
-                email.setContent(message.getContent().toString());
+                String content = extractTextContent(message);
+                email.setContent(content);
                 email.setIsHtml(true);
+                log.debug("Contenido HTML extraído: {} caracteres", content.length());
             } else if (message.isMimeType("multipart/*")) {
                 processMultipartContent((MimeMultipart) message.getContent(), email);
             } else {
-                email.setContent("Contenido no soportado: " + message.getContentType());
+                // Intentar extraer contenido como string por defecto
+                String fallbackContent = extractFallbackContent(message);
+                email.setContent(fallbackContent);
                 email.setIsHtml(false);
+                log.debug("Contenido fallback extraído: {} caracteres", fallbackContent.length());
             }
         } catch (Exception e) {
-            log.warn("Error procesando contenido del mensaje: {}", e.getMessage());
-            email.setContent("Error procesando contenido: " + e.getMessage());
+            log.error("Error procesando contenido del mensaje: {}", e.getMessage(), e);
+            email.setContent("Error al procesar contenido: " + e.getMessage());
             email.setIsHtml(false);
+        }
+    }
+
+    private String extractTextContent(Message message) throws MessagingException, IOException {
+        try {
+            Object content = message.getContent();
+            if (content == null) {
+                return "Sin contenido disponible";
+            }
+
+            String textContent = content.toString();
+            if (textContent == null || textContent.trim().isEmpty()) {
+                return "Contenido sin texto";
+            }
+
+            return textContent;
+        } catch (Exception e) {
+            log.warn("Error extrayendo contenido de texto: {}", e.getMessage());
+            return "Error extrayendo contenido";
+        }
+    }
+
+    private String extractFallbackContent(Message message) throws MessagingException {
+        try {
+            // Intentar obtener contenido usando diferentes métodos
+            Object content = message.getContent();
+            if (content != null) {
+                return content.toString();
+            }
+
+            // Si no hay contenido, intentar con headers
+            String[] subjects = message.getHeader("Subject");
+            if (subjects != null && subjects.length > 0) {
+                return "Mensaje con asunto: " + subjects[0];
+            }
+
+            return "Mensaje sin contenido disponible";
+        } catch (Exception e) {
+            log.warn("Error en extracción fallback: {}", e.getMessage());
+            return "Contenido no disponible";
         }
     }
 
     private void processMultipartContent(MimeMultipart multipart, Email email) throws MessagingException, IOException {
         StringBuilder textContent = new StringBuilder();
         StringBuilder htmlContent = new StringBuilder();
+        boolean foundContent = false;
+
+        log.debug("Procesando multipart con {} partes", multipart.getCount());
 
         for (int i = 0; i < multipart.getCount(); i++) {
             BodyPart bodyPart = multipart.getBodyPart(i);
+            String contentType = bodyPart.getContentType();
+            String disposition = bodyPart.getDisposition();
 
-            if (bodyPart.isMimeType("text/plain") && textContent.length() == 0) {
-                textContent.append(bodyPart.getContent().toString());
-            } else if (bodyPart.isMimeType("text/html") && htmlContent.length() == 0) {
-                htmlContent.append(bodyPart.getContent().toString());
-            } else if (Part.ATTACHMENT.equalsIgnoreCase(bodyPart.getDisposition()) ||
-                       bodyPart.getFileName() != null) {
-                processAttachment(bodyPart, email);
+            log.debug("Parte {}: ContentType={}, Disposition={}", i, contentType, disposition);
+
+            // Procesar contenido de texto/HTML - SER MÁS AGRESIVO
+            if (bodyPart.isMimeType("text/plain")) {
+                try {
+                    Object content = bodyPart.getContent();
+                    if (content != null) {
+                        String textPart = content.toString().trim();
+                        if (!textPart.isEmpty()) {
+                            if (textContent.length() > 0) {
+                                textContent.append("\n");
+                            }
+                            textContent.append(textPart);
+                            foundContent = true;
+                            log.debug("Contenido texto encontrado en parte {}: '{}' ({} caracteres)",
+                                i, textPart.substring(0, Math.min(50, textPart.length())), textPart.length());
+                        }
+                    }
+                } catch (Exception e) {
+                    log.warn("Error extrayendo texto de parte {}: {}", i, e.getMessage());
+                }
+            } else if (bodyPart.isMimeType("text/html")) {
+                try {
+                    Object content = bodyPart.getContent();
+                    if (content != null) {
+                        String htmlPart = content.toString().trim();
+                        if (!htmlPart.isEmpty()) {
+                            if (htmlContent.length() > 0) {
+                                htmlContent.append("\n");
+                            }
+                            htmlContent.append(htmlPart);
+                            foundContent = true;
+                            log.debug("Contenido HTML encontrado en parte {}: '{}' ({} caracteres)",
+                                i, htmlPart.substring(0, Math.min(50, htmlPart.length())), htmlPart.length());
+                        }
+                    }
+                } catch (Exception e) {
+                    log.warn("Error extrayendo HTML de parte {}: {}", i, e.getMessage());
+                }
+            }
+            // Intentar extraer contenido de cualquier parte que no sea adjunto
+            else if (!isAttachment(bodyPart)) {
+                try {
+                    Object content = bodyPart.getContent();
+                    if (content != null) {
+                        String anyContent = content.toString().trim();
+                        if (!anyContent.isEmpty() && anyContent.length() > 5) { // Filtrar contenido muy corto
+                            if (textContent.length() > 0) {
+                                textContent.append("\n");
+                            }
+                            textContent.append(anyContent);
+                            foundContent = true;
+                            log.debug("Contenido genérico encontrado en parte {}: '{}' ({} caracteres)",
+                                i, anyContent.substring(0, Math.min(50, anyContent.length())), anyContent.length());
+                        }
+                    }
+                } catch (Exception e) {
+                    log.warn("Error extrayendo contenido genérico de parte {}: {}", i, e.getMessage());
+                }
+            }
+
+            // Procesar adjuntos - mejorar detección
+            if (isAttachment(bodyPart)) {
+                try {
+                    processAttachment(bodyPart, email);
+                } catch (Exception e) {
+                    log.error("Error procesando adjunto en parte {}: {}", i, e.getMessage(), e);
+                }
+            }
+
+            // Si la parte es multipart anidado, procesarlo recursivamente
+            if (bodyPart.isMimeType("multipart/*")) {
+                try {
+                    MimeMultipart nestedMultipart = (MimeMultipart) bodyPart.getContent();
+                    Email tempEmail = new Email();
+                    processMultipartContent(nestedMultipart, tempEmail);
+
+                    if (tempEmail.getContent() != null && !tempEmail.getContent().trim().isEmpty()) {
+                        String nestedContent = tempEmail.getContent().trim();
+                        if (tempEmail.getIsHtml()) {
+                            if (htmlContent.length() > 0) {
+                                htmlContent.append("\n");
+                            }
+                            htmlContent.append(nestedContent);
+                        } else {
+                            if (textContent.length() > 0) {
+                                textContent.append("\n");
+                            }
+                            textContent.append(nestedContent);
+                        }
+                        foundContent = true;
+                        log.debug("Contenido multipart anidado encontrado: '{}' ({} caracteres)",
+                            nestedContent.substring(0, Math.min(50, nestedContent.length())), nestedContent.length());
+                    }
+                } catch (Exception e) {
+                    log.warn("Error procesando multipart anidado en parte {}: {}", i, e.getMessage());
+                }
             }
         }
 
-        // Preferir HTML si está disponible, sino texto plano
+        // Asignar contenido con prioridad HTML > texto > fallback
+        String finalContent = "";
+        boolean isHtml = false;
+
         if (htmlContent.length() > 0) {
-            email.setContent(htmlContent.toString());
-            email.setIsHtml(true);
+            finalContent = htmlContent.toString().trim();
+            isHtml = true;
+            log.debug("Asignado contenido HTML final: {} caracteres", finalContent.length());
         } else if (textContent.length() > 0) {
-            email.setContent(textContent.toString());
-            email.setIsHtml(false);
+            finalContent = textContent.toString().trim();
+            isHtml = false;
+            log.debug("Asignado contenido texto final: {} caracteres", finalContent.length());
+        }
+
+        // Si encontramos contenido, asignarlo
+        if (!finalContent.isEmpty()) {
+            email.setContent(finalContent);
+            email.setIsHtml(isHtml);
+            log.info("Contenido multipart extraído exitosamente: '{}' ({} caracteres, HTML: {})",
+                finalContent.substring(0, Math.min(100, finalContent.length())), finalContent.length(), isHtml);
         } else {
-            email.setContent("Contenido vacío");
-            email.setIsHtml(false);
+            // Último intento: buscar cualquier texto en cualquier parte
+            String fallbackContent = extractFallbackFromMultipart(multipart);
+            if (!fallbackContent.isEmpty()) {
+                email.setContent(fallbackContent);
+                email.setIsHtml(false);
+                log.info("Contenido fallback extraído: '{}' ({} caracteres)",
+                    fallbackContent.substring(0, Math.min(100, fallbackContent.length())), fallbackContent.length());
+            } else {
+                email.setContent("Mensaje multipart sin contenido de texto disponible");
+                email.setIsHtml(false);
+                log.warn("No se pudo encontrar contenido en mensaje multipart con {} partes", multipart.getCount());
+            }
         }
     }
 
-    private void processAttachment(BodyPart bodyPart, Email email) throws MessagingException, IOException {
-        String fileName = bodyPart.getFileName();
-        if (fileName != null) {
-            try (ByteArrayOutputStream buffer = new ByteArrayOutputStream()) {
-                bodyPart.getInputStream().transferTo(buffer);
+    private String extractFallbackFromMultipart(MimeMultipart multipart) throws MessagingException {
+        StringBuilder fallback = new StringBuilder();
 
-                EmailAttachment attachment = EmailAttachment.builder()
-                    .email(email)
-                    .fileName(fileName)
-                    .contentType(bodyPart.getContentType())
-                    .fileSize((long) buffer.size())
-                    .fileContent(buffer.toByteArray())
-                    .isInline(Part.INLINE.equalsIgnoreCase(bodyPart.getDisposition()))
-                    .build();
+        try {
+            for (int i = 0; i < multipart.getCount(); i++) {
+                BodyPart bodyPart = multipart.getBodyPart(i);
 
-                email.addAttachment(attachment);
-                log.debug("Procesado archivo adjunto: {} ({} bytes)", fileName, buffer.size());
+                try {
+                    // Intentar obtener CUALQUIER contenido como string
+                    Object content = bodyPart.getContent();
+                    if (content != null) {
+                        String stringContent = content.toString();
+                        if (stringContent != null && stringContent.trim().length() > 0) {
+                            // Filtrar contenido que parece ser headers o metadata
+                            if (!stringContent.contains("Content-Type:") &&
+                                !stringContent.contains("Content-Transfer-Encoding:") &&
+                                !stringContent.startsWith("--") &&
+                                stringContent.length() > 2) {
+
+                                if (fallback.length() > 0) {
+                                    fallback.append("\n");
+                                }
+                                fallback.append(stringContent.trim());
+                                log.debug("Fallback: encontrado texto en parte {}: '{}'",
+                                    i, stringContent.substring(0, Math.min(30, stringContent.length())));
+                            }
+                        }
+                    }
+                } catch (Exception e) {
+                    log.debug("No se pudo extraer contenido fallback de parte {}: {}", i, e.getMessage());
+                }
             }
+        } catch (Exception e) {
+            log.warn("Error en extracción fallback completa: {}", e.getMessage());
+        }
+
+        return fallback.toString().trim();
+    }
+
+    private boolean isAttachment(BodyPart bodyPart) throws MessagingException {
+        String disposition = bodyPart.getDisposition();
+        String fileName = bodyPart.getFileName();
+
+        // Es adjunto si tiene disposition ATTACHMENT
+        if (Part.ATTACHMENT.equalsIgnoreCase(disposition)) {
+            return true;
+        }
+
+        // Es adjunto si tiene filename (incluso sin disposition)
+        if (fileName != null && !fileName.trim().isEmpty()) {
+            return true;
+        }
+
+        // Es adjunto si no es texto/html y tiene content-type específico
+        String contentType = bodyPart.getContentType();
+        if (contentType != null) {
+            String lowerContentType = contentType.toLowerCase();
+            if (!lowerContentType.startsWith("text/") &&
+                !lowerContentType.startsWith("multipart/") &&
+                (lowerContentType.contains("application/") ||
+                 lowerContentType.contains("image/") ||
+                 lowerContentType.contains("audio/") ||
+                 lowerContentType.contains("video/"))) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    private void processAttachment(BodyPart bodyPart, Email email) throws MessagingException, IOException {
+        log.debug("Procesando adjunto...");
+
+        // Extraer filename con múltiples métodos
+        String fileName = extractFileName(bodyPart);
+        String contentType = bodyPart.getContentType();
+
+        // Extraer tamaño real del archivo
+        long fileSize = extractFileSize(bodyPart);
+
+        // Extraer contenido del archivo
+        byte[] fileContent = null;
+        try (ByteArrayOutputStream buffer = new ByteArrayOutputStream()) {
+            bodyPart.getInputStream().transferTo(buffer);
+            fileContent = buffer.toByteArray();
+
+            // Si no pudimos obtener el tamaño antes, usar el buffer
+            if (fileSize <= 0) {
+                fileSize = fileContent.length;
+            }
+        }
+
+        // Determinar si es inline
+        boolean isInline = Part.INLINE.equalsIgnoreCase(bodyPart.getDisposition());
+
+        EmailAttachment attachment = EmailAttachment.builder()
+            .email(email)
+            .fileName(fileName)
+            .contentType(contentType)
+            .fileSize(fileSize)
+            .fileContent(fileContent)
+            .isInline(isInline)
+            .build();
+
+        email.addAttachment(attachment);
+        log.info("Adjunto procesado exitosamente: {} ({} bytes, {})", fileName, fileSize, contentType);
+    }
+
+    private String extractFileName(BodyPart bodyPart) throws MessagingException {
+        // Método 1: getFileName() directo
+        String fileName = bodyPart.getFileName();
+        if (fileName != null && !fileName.trim().isEmpty() && !"unknown".equalsIgnoreCase(fileName)) {
+            return cleanFileName(fileName);
+        }
+
+        // Método 2: Extraer de Content-Disposition header
+        String[] dispositionHeaders = bodyPart.getHeader("Content-Disposition");
+        if (dispositionHeaders != null && dispositionHeaders.length > 0) {
+            String extractedName = extractFilenameFromDisposition(dispositionHeaders[0]);
+            if (extractedName != null) {
+                return cleanFileName(extractedName);
+            }
+        }
+
+        // Método 3: Extraer de Content-Type header
+        String contentType = bodyPart.getContentType();
+        if (contentType != null && contentType.contains("name=")) {
+            String extractedName = extractFilenameFromContentType(contentType);
+            if (extractedName != null) {
+                return cleanFileName(extractedName);
+            }
+        }
+
+        // Método 4: Generar nombre basado en Content-Type
+        return generateFileNameFromContentType(contentType);
+    }
+
+    private String extractFilenameFromDisposition(String disposition) {
+        if (disposition == null) return null;
+
+        // Buscar filename= o filename*=
+        String[] patterns = {"filename=\"", "filename=", "filename*=UTF-8''", "filename*="};
+
+        for (String pattern : patterns) {
+            int startIndex = disposition.indexOf(pattern);
+            if (startIndex != -1) {
+                startIndex += pattern.length();
+                int endIndex = disposition.indexOf(";", startIndex);
+                if (endIndex == -1) endIndex = disposition.length();
+
+                String filename = disposition.substring(startIndex, endIndex).trim();
+                if (filename.startsWith("\"") && filename.endsWith("\"")) {
+                    filename = filename.substring(1, filename.length() - 1);
+                }
+                return filename;
+            }
+        }
+        return null;
+    }
+
+    private String extractFilenameFromContentType(String contentType) {
+        if (contentType == null) return null;
+
+        int nameIndex = contentType.indexOf("name=");
+        if (nameIndex != -1) {
+            nameIndex += 5; // "name=".length()
+            int endIndex = contentType.indexOf(";", nameIndex);
+            if (endIndex == -1) endIndex = contentType.length();
+
+            String filename = contentType.substring(nameIndex, endIndex).trim();
+            if (filename.startsWith("\"") && filename.endsWith("\"")) {
+                filename = filename.substring(1, filename.length() - 1);
+            }
+            return filename;
+        }
+        return null;
+    }
+
+    private String generateFileNameFromContentType(String contentType) {
+        if (contentType == null) return "archivo_adjunto";
+
+        String lowerContentType = contentType.toLowerCase();
+
+        if (lowerContentType.contains("pdf")) return "documento.pdf";
+        if (lowerContentType.contains("word") || lowerContentType.contains("msword")) return "documento.doc";
+        if (lowerContentType.contains("excel") || lowerContentType.contains("spreadsheet")) return "hoja_calculo.xlsx";
+        if (lowerContentType.contains("powerpoint") || lowerContentType.contains("presentation")) return "presentacion.ppt";
+        if (lowerContentType.contains("image/jpeg") || lowerContentType.contains("image/jpg")) return "imagen.jpg";
+        if (lowerContentType.contains("image/png")) return "imagen.png";
+        if (lowerContentType.contains("image/gif")) return "imagen.gif";
+        if (lowerContentType.contains("text/plain")) return "archivo.txt";
+        if (lowerContentType.contains("text/html")) return "pagina.html";
+        if (lowerContentType.contains("application/zip")) return "archivo.zip";
+
+        return "archivo_adjunto";
+    }
+
+    private String cleanFileName(String fileName) {
+        if (fileName == null) return "archivo_adjunto";
+
+        // Remover caracteres problemáticos
+        String cleaned = fileName.replaceAll("[\\r\\n\\t]", "").trim();
+
+        // Si está vacío después de limpiar
+        if (cleaned.isEmpty()) {
+            return "archivo_adjunto";
+        }
+
+        return cleaned;
+    }
+
+    private long extractFileSize(BodyPart bodyPart) throws MessagingException {
+        // Método 1: getSize() directo
+        int size = bodyPart.getSize();
+        if (size > 0) {
+            return size;
+        }
+
+        // Método 2: Content-Length header
+        String[] lengthHeaders = bodyPart.getHeader("Content-Length");
+        if (lengthHeaders != null && lengthHeaders.length > 0) {
+            try {
+                return Long.parseLong(lengthHeaders[0]);
+            } catch (NumberFormatException e) {
+                log.warn("No se pudo parsear Content-Length: {}", lengthHeaders[0]);
+            }
+        }
+
+        // Método 3: Leer el contenido para obtener el tamaño (como último recurso)
+        try (ByteArrayOutputStream tempBuffer = new ByteArrayOutputStream()) {
+            bodyPart.getInputStream().transferTo(tempBuffer);
+            return tempBuffer.size();
+        } catch (IOException e) {
+            log.warn("No se pudo obtener tamaño del adjunto: {}", e.getMessage());
+            return 0;
         }
     }
 

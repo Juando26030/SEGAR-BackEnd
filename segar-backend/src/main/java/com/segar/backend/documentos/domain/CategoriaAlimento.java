@@ -1,4 +1,4 @@
-package com.segar.backend.shared.domain;
+package com.segar.backend.documentos.domain;
 
 /**
  * Categorías principales de alimentos procesados según clasificación INVIMA
@@ -34,15 +34,22 @@ public enum CategoriaAlimento {
     }
 
     /**
-     * Obtiene el nivel de riesgo predeterminado según la categoría
+     * Determina el nivel de riesgo por defecto según la categoría de alimento
+     * Basado en regulaciones INVIMA y riesgo asociado
      */
     public NivelRiesgo getNivelRiesgoDefault() {
         return switch (this) {
-            case PANADERIA_PASTELERIA, GALLETERIA_CONFITERIA -> NivelRiesgo.BAJO;
-            case DERIVADOS_LACTEOS, PRODUCTOS_CARNICOS, JUGOS_BEBIDAS, 
-                 CONSERVAS_FRUTAS_VEGETALES, SALSAS_CONDIMENTOS -> NivelRiesgo.MEDIO;
-            case ALIMENTOS_INFANTILES, PRODUCTOS_LISTOS_CONSUMO -> NivelRiesgo.ALTO;
-            case PESCADOS_MARISCOS, OTROS_ALIMENTOS -> NivelRiesgo.MEDIO; // Por defecto
+            case ALIMENTOS_INFANTILES, DERIVADOS_LACTEOS, PRODUCTOS_CARNICOS -> NivelRiesgo.ALTO;
+            case PESCADOS_MARISCOS, JUGOS_BEBIDAS -> NivelRiesgo.MEDIO;
+            case PANADERIA_PASTELERIA, GALLETERIA_CONFITERIA, CONSERVAS_FRUTAS_VEGETALES,
+                 SALSAS_CONDIMENTOS, PRODUCTOS_LISTOS_CONSUMO, OTROS_ALIMENTOS -> NivelRiesgo.BAJO;
         };
+    }
+
+    /**
+     * Valida si la categoría requiere información adicional específica
+     */
+    public boolean requiereInformacionEspecial() {
+        return this == ALIMENTOS_INFANTILES || this == DERIVADOS_LACTEOS || this == PRODUCTOS_CARNICOS;
     }
 }

@@ -53,9 +53,38 @@ public class DatabaseInit implements ApplicationRunner{
     @Autowired
     private HistorialTramiteRepository historialTramiteRepository;
 
+    @Autowired
+    private EmpresaRepository empresaRepository;
+
+
     @Override
     public void run(ApplicationArguments args) throws Exception {
-        productoRepository.save(new Producto("Producto 1", "Descripción del producto 1", "Especificaciones del producto 1", "Referencia del producto 1", "Fabricante del producto 1"));
+
+        // Crear empresa
+        Empresa empresa = Empresa.builder()
+                .razonSocial("Lácteos Premium S.A.S.")
+                .nit("900123456-7")
+                .nombreComercial("Premium Dairy")
+                .direccion("Calle 123 #45-67")
+                .ciudad("Bogotá")
+                .pais("Colombia")
+                .telefono("601-2345678")
+                .email("contacto@premiumdairy.com")
+                .representanteLegal("Juan Carlos Rodríguez")
+                .estado(EstadoEmpresa.ACTIVA)
+                .tipoEmpresa("FABRICANTE")
+                .build();
+
+        empresaRepository.save(empresa);
+
+        // Crear producto
+        Producto producto = new Producto("Yogurt Natural Premium",
+                "Yogurt natural sin conservantes",
+                "Contenido graso: 3.2%, Proteína: 4.5%",
+                "YNP-2024-001",
+                empresa.getRazonSocial(),
+                empresa.getId());
+        productoRepository.save(producto);
 
         // Tramite base
         Tramite t = new Tramite();

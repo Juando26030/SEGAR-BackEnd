@@ -1,10 +1,6 @@
 package com.segar.backend.documentos.service;
 
 import com.segar.backend.documentos.dto.*;
-import com.segar.backend.documentos.domain.CategoriaAlimento;
-import com.segar.backend.documentos.domain.NivelRiesgo;
-import com.segar.backend.documentos.domain.PoblacionObjetivo;
-import com.segar.backend.documentos.domain.TipoProcesamiento;
 import com.segar.backend.documentos.domain.TipoTramite;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;

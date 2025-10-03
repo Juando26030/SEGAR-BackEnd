@@ -2,7 +2,6 @@ package com.segar.backend.tramites.service;
 
 import com.segar.backend.shared.domain.EstadoPago;
 import com.segar.backend.shared.domain.EstadoSolicitud;
-import com.segar.backend.shared.domain.TipoTramite;
 import com.segar.backend.shared.domain.Producto;
 import com.segar.backend.shared.events.DocumentValidationRequestEvent;
 import com.segar.backend.shared.events.DocumentValidationResponseEvent;

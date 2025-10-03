@@ -1,7 +1,7 @@
 package com.segar.backend.documentos.api;
 
 import com.segar.backend.documentos.api.dto.*;
-import com.segar.backend.documentos.domain.*;
+
 import com.segar.backend.documentos.service.DocumentTemplateServiceImpl;
 import com.segar.backend.shared.domain.CategoriaRiesgo;
 import com.segar.backend.shared.domain.TipoTramite;

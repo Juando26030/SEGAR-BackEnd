@@ -1,6 +1,6 @@
 package com.segar.backend.security;
 
-import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
+
 import org.springframework.context.annotation.Profile;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;

@@ -1,6 +1,5 @@
 package com.segar.backend.tramites.api.dto;
 
-import com.segar.backend.shared.domain.TipoTramite;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;

@@ -12,6 +12,7 @@ import java.util.List;
 
 /**
  * DTO para formulario de Notificación Sanitaria Obligatoria (NSO)
+ * Formulario oficial: ASS-NSA-FM097
  * Trámite para productos de bajo riesgo
  */
 @Data
@@ -79,6 +80,18 @@ public class FormularioNSODTO {
     private ActividadPrincipal actividadPrincipal;
     
     private String numeroHabilitacionSanitaria;
+
+    // 3.1. Datos para productos importados (opcionales)
+    private Boolean esProductoImportado = false;
+    private String paisOrigen;
+    private String nombreFabricanteExtranjero;
+    private String direccionFabricanteExtranjero;
+    private String nombreImportadorColombia;
+    private String direccionImportadorColombia;
+    private String numeroRegistroSanitarioPaisOrigen;
+    private String vigenciaRegistroPaisOrigen;
+    private Boolean tieneAutorizacionFabricante;
+    private Boolean documentosEnEspanol;
 
     // 4. Clasificación del producto
     @NotBlank(message = "La categoría del alimento es obligatoria")

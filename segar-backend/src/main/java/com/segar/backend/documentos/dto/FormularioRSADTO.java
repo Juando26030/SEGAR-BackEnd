@@ -12,6 +12,7 @@ import java.util.List;
 
 /**
  * DTO para formulario de Registro Sanitario (RSA)
+ * Formulario oficial: ASS-RSA-FM099
  * Trámite para productos de riesgo alto o poblaciones vulnerables
  * Extiende todos los campos de PSA más campos específicos de RSA
  */
@@ -73,6 +74,18 @@ public class FormularioRSADTO {
     // ¡NUEVO EN RSA! - Sistema de inocuidad HACCP obligatorio
     @NotNull(message = "El sistema HACCP es obligatorio para RSA")
     private SistemaHACCPDTO sistemaHACCP;
+
+    // 3.1. Datos para productos importados (opcionales)
+    private Boolean esProductoImportado = false;
+    private String paisOrigen;
+    private String nombreFabricanteExtranjero;
+    private String direccionFabricanteExtranjero;
+    private String nombreImportadorColombia;
+    private String direccionImportadorColombia;
+    private String numeroRegistroSanitarioPaisOrigen;
+    private String vigenciaRegistroPaisOrigen;
+    private Boolean tieneAutorizacionFabricante;
+    private Boolean documentosEnEspanol;
 
     // 4. Clasificación del producto
     @NotBlank(message = "La categoría del alimento es obligatoria")

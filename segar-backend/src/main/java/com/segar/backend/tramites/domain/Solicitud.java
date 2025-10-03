@@ -1,18 +1,30 @@
 package com.segar.backend.tramites.domain;
 
-import jakarta.persistence.*;
+import java.time.LocalDateTime;
+import java.util.List;
+
+import com.segar.backend.shared.domain.EstadoSolicitud;
+import com.segar.backend.shared.domain.Producto;
+import com.segar.backend.shared.domain.TipoTramite;
+
+import jakarta.persistence.CascadeType;
+import jakarta.persistence.CollectionTable;
+import jakarta.persistence.Column;
+import jakarta.persistence.ElementCollection;
+import jakarta.persistence.Entity;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
+import jakarta.persistence.FetchType;
+import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.GenerationType;
+import jakarta.persistence.Id;
+import jakarta.persistence.JoinColumn;
+import jakarta.persistence.ManyToOne;
+import jakarta.persistence.OneToOne;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
-import com.segar.backend.shared.domain.Producto;
-import com.segar.backend.shared.domain.TipoTramite;
-import com.segar.backend.shared.domain.EstadoSolicitud;
-import com.segar.backend.documentos.domain.Documento;
-
-import java.time.LocalDateTime;
-import java.util.ArrayList;
-import java.util.List;
 
 /**
  * Entidad que representa una solicitud de trámite ante INVIMA

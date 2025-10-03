@@ -197,7 +197,7 @@ public class ClasificacionInvimaService {
                     .tipoTramite("PSA")
                     .documentosGenerados(documentos)
                     .estadoTramite(ESTADO_RADICADO)
-                    .tiempoEstimadoDias(15)
+                    .tiempoEstimadoDias(30) // PSA: días a semanas según documento
                     .build();
 
         } catch (Exception e) {
@@ -241,7 +241,7 @@ public class ClasificacionInvimaService {
                     .tipoTramite("RSA")
                     .documentosGenerados(documentos)
                     .estadoTramite(ESTADO_RADICADO)
-                    .tiempoEstimadoDias(45)
+                    .tiempoEstimadoDias(90) // RSA: análisis más estrictos según documento
                     .build();
 
         } catch (Exception e) {

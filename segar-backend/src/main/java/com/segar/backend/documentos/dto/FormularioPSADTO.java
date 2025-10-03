@@ -12,6 +12,7 @@ import java.util.List;
 
 /**
  * DTO para formulario de Permiso Sanitario (PSA)
+ * Formulario oficial: ASS-PSA-FM098
  * Trámite para productos de riesgo medio
  * Extiende todos los campos de NSO más campos específicos de PSA
  */
@@ -69,6 +70,18 @@ public class FormularioPSADTO {
     // ¡NUEVO EN PSA! - Certificación BPM obligatoria
     @NotNull(message = "La certificación BPM es obligatoria para PSA")
     private CertificacionBPMDTO certificacionBPM;
+
+    // 3.1. Datos para productos importados (opcionales)
+    private Boolean esProductoImportado = false;
+    private String paisOrigen;
+    private String nombreFabricanteExtranjero;
+    private String direccionFabricanteExtranjero;
+    private String nombreImportadorColombia;
+    private String direccionImportadorColombia;
+    private String numeroRegistroSanitarioPaisOrigen;
+    private String vigenciaRegistroPaisOrigen;
+    private Boolean tieneAutorizacionFabricante;
+    private Boolean documentosEnEspanol;
 
     // 4. Clasificación del producto
     @NotBlank(message = "La categoría del alimento es obligatoria")

@@ -15,6 +15,13 @@ public enum CategoriaAlimento {
     SALSAS_CONDIMENTOS("Salsas, aderezos y condimentos", "Salsas procesadas, condimentos preparados"),
     ALIMENTOS_INFANTILES("Alimentos infantiles procesados", "Cereales infantiles, compotas, papillas"),
     PRODUCTOS_LISTOS_CONSUMO("Productos listos para consumo", "Precocidos, congelados, empacados al vacío"),
+    
+    // NUEVAS CATEGORÍAS según documentación INVIMA actualizada
+    CEREALES_DERIVADOS("Cereales y derivados", "Harinas, cereales procesados, productos de molinería"),
+    ACEITES_GRASAS("Aceites y grasas", "Aceites vegetales, margarinas, grasas procesadas"),
+    SUPLEMENTOS_DIETETICOS("Suplementos dietéticos", "Vitaminas, minerales, suplementos nutricionales"),
+    EDULCORANTES("Edulcorantes", "Endulzantes naturales y artificiales"),
+    
     OTROS_ALIMENTOS("Otros alimentos procesados", "Categoría genérica para productos no específicos");
 
     private final String descripcion;
@@ -39,10 +46,10 @@ public enum CategoriaAlimento {
      */
     public NivelRiesgo getNivelRiesgoDefault() {
         return switch (this) {
-            case ALIMENTOS_INFANTILES, DERIVADOS_LACTEOS, PRODUCTOS_CARNICOS -> NivelRiesgo.ALTO;
-            case PESCADOS_MARISCOS, JUGOS_BEBIDAS -> NivelRiesgo.MEDIO;
+            case ALIMENTOS_INFANTILES, DERIVADOS_LACTEOS, PRODUCTOS_CARNICOS, SUPLEMENTOS_DIETETICOS -> NivelRiesgo.ALTO;
+            case PESCADOS_MARISCOS, JUGOS_BEBIDAS, ACEITES_GRASAS, EDULCORANTES -> NivelRiesgo.MEDIO;
             case PANADERIA_PASTELERIA, GALLETERIA_CONFITERIA, CONSERVAS_FRUTAS_VEGETALES,
-                 SALSAS_CONDIMENTOS, PRODUCTOS_LISTOS_CONSUMO, OTROS_ALIMENTOS -> NivelRiesgo.BAJO;
+                 SALSAS_CONDIMENTOS, PRODUCTOS_LISTOS_CONSUMO, CEREALES_DERIVADOS, OTROS_ALIMENTOS -> NivelRiesgo.BAJO;
         };
     }
 
@@ -50,6 +57,7 @@ public enum CategoriaAlimento {
      * Valida si la categoría requiere información adicional específica
      */
     public boolean requiereInformacionEspecial() {
-        return this == ALIMENTOS_INFANTILES || this == DERIVADOS_LACTEOS || this == PRODUCTOS_CARNICOS;
+        return this == ALIMENTOS_INFANTILES || this == DERIVADOS_LACTEOS || 
+               this == PRODUCTOS_CARNICOS || this == SUPLEMENTOS_DIETETICOS;
     }
 }

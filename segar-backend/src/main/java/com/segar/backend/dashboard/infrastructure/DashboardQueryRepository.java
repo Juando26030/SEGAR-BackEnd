@@ -75,4 +75,45 @@ public class DashboardQueryRepository {
         ).setMaxResults(limit).getResultList();
     }
 
+    public Object[] getTramiteCompleto(Long tramiteId) {
+        return em.createQuery(
+                "select t.id, t.radicadoNumber, t.submissionDate, t.procedureType, t.productName, t.currentStatus, t.lastUpdate " +
+                        "from Tramite t where t.id = :tramiteId",
+                Object[].class
+        ).setParameter("tramiteId", tramiteId).getSingleResult();
+    }
+
+    public List<Object[]> getEventosByTramite(Long tramiteId) {
+        return em.createQuery(
+                "select e.title, e.description, e.date, e.completed, e.currentEvent, e.orden " +
+                        "from EventoTramite e where e.tramite.id = :tramiteId order by e.orden",
+                Object[].class
+        ).setParameter("tramiteId", tramiteId).getResultList();
+    }
+
+    public List<Object[]> getRequerimientosByTramite(Long tramiteId) {
+        return em.createQuery(
+                "select r.number, r.title, r.description, r.deadline, r.status " +
+                        "from Requerimiento r where r.tramite.id = :tramiteId order by r.deadline",
+                Object[].class
+        ).setParameter("tramiteId", tramiteId).getResultList();
+    }
+
+    public List<Object[]> getNotificacionesByTramite(Long tramiteId, int limit) {
+        return em.createQuery(
+                "select n.type, n.title, n.message, n.date, n.read " +
+                        "from Notificacion n where n.tramite.id = :tramiteId order by n.date desc",
+                Object[].class
+        ).setParameter("tramiteId", tramiteId).setMaxResults(limit).getResultList();
+    }
+
+    public List<Object[]> getHistorialByTramite(Long tramiteId) {
+        return em.createQuery(
+                "select h.fecha, h.accion, h.descripcion, h.usuario, h.estado " +
+                        "from HistorialTramite h where h.tramiteId = :tramiteId order by h.fecha desc",
+                Object[].class
+        ).setParameter("tramiteId", tramiteId).getResultList();
+    }
+
+
 }

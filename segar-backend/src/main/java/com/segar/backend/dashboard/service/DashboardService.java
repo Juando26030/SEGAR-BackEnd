@@ -99,4 +99,95 @@ public class DashboardService {
         return out;
     }
 
+    public TramiteDetalleDTO getTramiteDetalle(Long tramiteId) {
+        try {
+            // Información básica del trámite
+            Object[] tramiteData = queryRepository.getTramiteCompleto(tramiteId);
+
+            // Eventos
+            List<Object[]> eventosData = queryRepository.getEventosByTramite(tramiteId);
+            List<TramiteDetalleDTO.EventoTramiteDTO> eventos = eventosData.stream()
+                    .map(row -> new TramiteDetalleDTO.EventoTramiteDTO(
+                            (String) row[0],
+                            (String) row[1],
+                            (LocalDate) row[2],
+                            (Boolean) row[3],
+                            (Boolean) row[4],
+                            ((Number) row[5]).intValue()
+                    )).toList();
+
+            // Requerimientos
+            List<Object[]> reqData = queryRepository.getRequerimientosByTramite(tramiteId);
+            LocalDate today = LocalDate.now();
+            List<TramiteDetalleDTO.RequerimientoInfoDTO> requerimientos = reqData.stream()
+                    .map(row -> {
+                        LocalDate deadline = (LocalDate) row[3];
+                        long diasRestantes = deadline != null ? today.until(deadline).getDays() : 0;
+                        return new TramiteDetalleDTO.RequerimientoInfoDTO(
+                                (String) row[0],
+                                (String) row[1],
+                                (String) row[2],
+                                deadline,
+                                String.valueOf(row[4]),
+                                diasRestantes
+                        );
+                    }).toList();
+
+            // Notificaciones
+            List<Object[]> notifData = queryRepository.getNotificacionesByTramite(tramiteId, 10);
+            List<TramiteDetalleDTO.NotificacionInfoDTO> notificaciones = notifData.stream()
+                    .map(row -> new TramiteDetalleDTO.NotificacionInfoDTO(
+                            String.valueOf(row[0]),
+                            (String) row[1],
+                            (String) row[2],
+                            (LocalDateTime) row[3],
+                            (Boolean) row[4]
+                    )).toList();
+
+            // Historial
+            List<Object[]> historialData = queryRepository.getHistorialByTramite(tramiteId);
+            List<TramiteDetalleDTO.HistorialTramiteDTO> historial = historialData.stream()
+                    .map(row -> new TramiteDetalleDTO.HistorialTramiteDTO(
+                            (LocalDateTime) row[0],
+                            (String) row[1],
+                            (String) row[2],
+                            (String) row[3],
+                            (String) row[4]
+                    )).toList();
+
+            // Calcular estadísticas
+            LocalDate submissionDate = (LocalDate) tramiteData[2];
+            long diasTranscurridos = submissionDate.until(LocalDate.now()).getDays();
+            int eventosCompletados = (int) eventos.stream().mapToInt(e -> e.isCompleted() ? 1 : 0).sum();
+            int reqPendientes = (int) requerimientos.stream().mapToInt(r -> r.getStatus().equals("PENDIENTE") ? 1 : 0).sum();
+            int notifNoLeidas = (int) notificaciones.stream().mapToInt(n -> !n.isRead() ? 1 : 0).sum();
+            double progreso = eventos.isEmpty() ? 0 : (eventosCompletados * 100.0) / eventos.size();
+
+            return TramiteDetalleDTO.builder()
+                    .id(((Number) tramiteData[0]).longValue())
+                    .radicadoNumber((String) tramiteData[1])
+                    .submissionDate(submissionDate)
+                    .procedureType((String) tramiteData[3])
+                    .productName((String) tramiteData[4])
+                    .currentStatus(String.valueOf(tramiteData[5]))
+                    .lastUpdate((LocalDateTime) tramiteData[6])
+                    .eventos(eventos)
+                    .requerimientos(requerimientos)
+                    .notificaciones(notificaciones)
+                    .historial(historial)
+                    .estadisticas(new TramiteDetalleDTO.EstadisticasTramiteDTO(
+                            diasTranscurridos,
+                            eventos.size(),
+                            eventosCompletados,
+                            reqPendientes,
+                            notifNoLeidas,
+                            progreso
+                    ))
+                    .build();
+
+        } catch (Exception e) {
+            throw new RuntimeException("Trámite no encontrado con ID: " + tramiteId, e);
+        }
+    }
+
 }

@@ -3,10 +3,7 @@ package com.segar.backend.dashboard.api;
 import com.segar.backend.dashboard.domain.dto.*;
 import com.segar.backend.dashboard.service.DashboardService;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestParam;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
 import java.time.LocalDate;
 import java.util.List;
@@ -62,5 +59,11 @@ public class DashboardController {
     ) {
         return ResponseEntity.ok(dashboardService.tramitesRecientes(limit));
     }
+
+    @GetMapping("/tramite/{id}")
+    public ResponseEntity<TramiteDetalleDTO> getTramiteDetalle(@PathVariable Long id) {
+        return ResponseEntity.ok(dashboardService.getTramiteDetalle(id));
+    }
+
 
 }

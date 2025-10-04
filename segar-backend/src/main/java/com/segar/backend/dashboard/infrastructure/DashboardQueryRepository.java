@@ -66,4 +66,13 @@ public class DashboardQueryRepository {
         ).setParameter("status", EstadoRequerimiento.PENDIENTE)
                 .getSingleResult();
     }
+
+    public List<Object[]> tramitesRecientes(int limit) {
+        return em.createQuery(
+                "select t.id, t.radicadoNumber, t.productName, t.procedureType, t.currentStatus, t.lastUpdate " +
+                        "from Tramite t order by t.lastUpdate desc",
+                Object[].class
+        ).setMaxResults(limit).getResultList();
+    }
+
 }

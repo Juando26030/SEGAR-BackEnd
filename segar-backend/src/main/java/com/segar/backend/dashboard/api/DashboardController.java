@@ -54,4 +54,13 @@ public class DashboardController {
     ) {
         return ResponseEntity.ok(dashboardService.registrosPorAno(year));
     }
+
+
+    @GetMapping("/tramites/recientes")
+    public ResponseEntity<List<TramiteRecienteDTO>> tramitesRecientes(
+            @RequestParam(name = "limit", required = false, defaultValue = "5") int limit
+    ) {
+        return ResponseEntity.ok(dashboardService.tramitesRecientes(limit));
+    }
+
 }

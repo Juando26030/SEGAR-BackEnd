@@ -83,4 +83,20 @@ public class DashboardService {
         Long count = registroSanitarioRepository.countByYear(year);
         return count != null ? count : 0L;
     }
+
+    public List<TramiteRecienteDTO> tramitesRecientes(int limit) {
+        List<Object[]> rows = queryRepository.tramitesRecientes(limit);
+        List<TramiteRecienteDTO> out = new ArrayList<>();
+        for (Object[] row : rows) {
+            Long id = ((Number) row[0]).longValue();
+            String radicado = (String) row[1];
+            String producto = (String) row[2];
+            String tipo = (String) row[3];
+            String estado = String.valueOf(row[4]);
+            LocalDateTime lastUpdate = (LocalDateTime) row[5];
+            out.add(new TramiteRecienteDTO(id, radicado, producto, tipo, estado, lastUpdate));
+        }
+        return out;
+    }
+
 }

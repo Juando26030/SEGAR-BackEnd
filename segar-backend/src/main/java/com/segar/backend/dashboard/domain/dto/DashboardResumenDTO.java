@@ -18,6 +18,7 @@ public class DashboardResumenDTO {
     private long totalRegistros;
     private long registrosVigentes;
     private long registrosPorVencer;
+    private long registrosVencidos;
 
     private long requerimientosPendientes;
 }

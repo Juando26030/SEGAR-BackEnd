@@ -27,6 +27,7 @@ public class DashboardService {
         long totalRegistros = queryRepository.totalRegistros();
         long registrosVigentes = queryRepository.registrosVigentes();
         long registrosPorVencer = queryRepository.registrosPorVencer(LocalDateTime.now().plusDays(diasVencimientoVentana));
+        long registrosVencidos = totalRegistros - registrosVigentes;
         long reqPendientes = queryRepository.countRequerimientosPendientes();
 
         List<ConteoPorEstadoDTO> porEstado = tramitesPorEstado();
@@ -37,6 +38,7 @@ public class DashboardService {
                 .totalRegistros(totalRegistros)
                 .registrosVigentes(registrosVigentes)
                 .registrosPorVencer(registrosPorVencer)
+                .registrosVencidos(registrosVencidos)
                 .requerimientosPendientes(reqPendientes)
                 .build();
     }

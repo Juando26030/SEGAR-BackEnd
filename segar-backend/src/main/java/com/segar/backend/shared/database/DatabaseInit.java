@@ -9,15 +9,14 @@ import com.segar.backend.tramites.domain.*;
 import com.segar.backend.tramites.infrastructure.*;
 import com.segar.backend.shared.infrastructure.*;
 import com.segar.backend.documentos.infrastructure.*;
+import com.segar.backend.calendario.infrastructure.EventoRepository;
+import com.segar.backend.calendario.domain.*;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.ApplicationArguments;
 import org.springframework.boot.ApplicationRunner;
 import org.springframework.context.annotation.Profile;
 import org.springframework.stereotype.Controller;
-
-
-
 
 import jakarta.transaction.Transactional;
 
@@ -56,6 +55,8 @@ public class DatabaseInit implements ApplicationRunner{
     @Autowired
     private EmpresaRepository empresaRepository;
 
+    @Autowired
+    private EventoRepository eventoCalendarioRepository;
 
     @Override
     public void run(ApplicationArguments args) throws Exception {
@@ -181,7 +182,6 @@ public class DatabaseInit implements ApplicationRunner{
         crearPreferencias(List.of(t1, t2, t3, t4, t5), prefRepo);
         crearPreferencias(List.of(t6), prefRepo);
 
-
         // RESOLUCIONES Y REGISTROS SANITARIOS PARA APROBADOS (T1, T2 y T6)
         crearResolucionYRegistro(t1, 1L, resolucionRepository, registroSanitarioRepository, false);
         crearResolucionYRegistro(t2, 2L, resolucionRepository, registroSanitarioRepository, false);
@@ -195,9 +195,98 @@ public class DatabaseInit implements ApplicationRunner{
         crearHistorial(t5, historialTramiteRepository, false);
         crearHistorial(t6, historialTramiteRepository, true);
 
+        // CREAR EVENTOS DEL CALENDARIO
+        crearEventosCalendario();
+
         System.out.println("✅ Datos de inicialización cargados correctamente");
         System.out.println("📋 5 trámites creados con diferentes estados");
     }
+
+    private void crearEventosCalendario() {
+        List<Evento> eventosCalendario = new java.util.ArrayList<>();
+
+        // Eventos para vencimientos de registros sanitarios
+        List<RegistroSanitario> registros = registroSanitarioRepository.findAll();
+        for (RegistroSanitario registro : registros) {
+            PrioridadEvento prioridad = PrioridadEvento.BAJA;
+            EstadoEvento estado = EstadoEvento.ACTIVO;
+
+            // Calcular prioridad según cercanía al vencimiento
+            long diasParaVencer = java.time.temporal.ChronoUnit.DAYS.between(
+                    LocalDate.now(),
+                    registro.getFechaVencimiento().toLocalDate()
+            );
+
+            if (diasParaVencer <= 30) {
+                prioridad = PrioridadEvento.ALTA;
+            } else if (diasParaVencer <= 90) {
+                prioridad = PrioridadEvento.MEDIA;
+            }
+
+            if (diasParaVencer < 0) {
+                estado = EstadoEvento.VENCIDO;
+            }
+
+            Evento eventoVencimiento = Evento.builder()
+                    .titulo("Vencimiento Registro Sanitario - " + registro.getNumeroRegistro())
+                    .descripcion("El registro sanitario " + registro.getNumeroRegistro() + " vence el " + registro.getFechaVencimiento().toLocalDate())
+                    .fecha(registro.getFechaVencimiento().toLocalDate())
+                    .hora(java.time.LocalTime.of(9, 0))
+                    .tipo(TipoEvento.VENCIMIENTO)
+                    .categoria(CategoriaEvento.REGISTRO_SANITARIO)
+                    .prioridad(prioridad)
+                    .estado(estado)
+                    .empresaId(registro.getEmpresaId())
+                    .build();
+
+            eventosCalendario.add(eventoVencimiento);
+        }
+
+        // Eventos para plazos finales de requerimientos
+        List<Requerimiento> requerimientos = reqRepo.findAll();
+        for (Requerimiento requerimiento : requerimientos) {
+            PrioridadEvento prioridad = PrioridadEvento.BAJA;
+            EstadoEvento estado = EstadoEvento.ACTIVO;
+
+            // Calcular prioridad según cercanía al plazo
+            long diasParaPlazo = java.time.temporal.ChronoUnit.DAYS.between(
+                    LocalDate.now(),
+                    requerimiento.getDeadline()
+            );
+
+            if (diasParaPlazo <= 7) {
+                prioridad = PrioridadEvento.ALTA;
+            } else if (diasParaPlazo <= 15) {
+                prioridad = PrioridadEvento.MEDIA;
+            }
+
+            if (diasParaPlazo < 0) {
+                estado = EstadoEvento.VENCIDO;
+            } else if (requerimiento.getStatus() == EstadoRequerimiento.RESPONDIDO) {
+                estado = EstadoEvento.COMPLETADO;
+            }
+
+            Evento eventoPlazo = Evento.builder()
+                    .titulo("Plazo Final Requerimiento - Trámite " + requerimiento.getTramite().getRadicadoNumber())
+                    .descripcion("Plazo final para cumplir requerimiento del trámite " + requerimiento.getTramite().getRadicadoNumber() + " - " + requerimiento.getDescription())
+                    .fecha(requerimiento.getDeadline())
+                    .hora(java.time.LocalTime.of(17, 0))
+                    .tipo(TipoEvento.PLAZO_FINAL)
+                    .categoria(CategoriaEvento.TRAMITE)
+                    .prioridad(prioridad)
+                    .estado(estado)
+                    .empresaId(1L)
+                    .tramiteId(requerimiento.getTramite().getId())
+                    .build();
+
+            eventosCalendario.add(eventoPlazo);
+        }
+
+        eventoCalendarioRepository.saveAll(eventosCalendario);
+        System.out.println("✅ " + eventosCalendario.size() + " eventos de calendario creados");
+    }
+
+    // ... resto de métodos existentes sin cambios ...
 
     private void crearEventosCompletos(Tramite tramite, EventoTramiteRepository repo) {
         List<EventoTramite> eventos = List.of(
@@ -279,7 +368,6 @@ public class DatabaseInit implements ApplicationRunner{
                     crearNotificacion(tramite, TipoNotificacion.INFO, "Trámite en proceso", "Su trámite está siendo procesado", true)
             );
             repo.saveAll(notificaciones);
-
         }
     }
 
@@ -372,6 +460,4 @@ public class DatabaseInit implements ApplicationRunner{
                 .estado(estado)
                 .build();
     }
-
-
 }

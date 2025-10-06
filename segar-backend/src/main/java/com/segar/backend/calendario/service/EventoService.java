@@ -117,4 +117,13 @@ public class EventoService {
                 .fechaActualizacion(evento.getFechaActualizacion())
                 .build();
     }
+
+    public List<EventoDTO> obtenerProximosTresEventos() {
+        org.springframework.data.domain.Pageable pageable = org.springframework.data.domain.PageRequest.of(0, 3);
+        return eventoRepository.findTop3ProximosEventos(pageable)
+                .stream()
+                .map(this::convertirADTO)
+                .collect(Collectors.toList());
+    }
+
 }

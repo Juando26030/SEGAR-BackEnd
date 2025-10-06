@@ -107,4 +107,11 @@ public class CalendarioController {
         List<EstadoEvento> estados = calendarioService.obtenerEstadosEvento();
         return ResponseEntity.ok(estados);
     }
+
+    @GetMapping("/eventos/proximos")
+    public ResponseEntity<List<EventoDTO>> obtenerProximosEventos() {
+        List<EventoDTO> proximosEventos = eventoService.obtenerProximosTresEventos();
+        return ResponseEntity.ok(proximosEventos);
+    }
+
 }

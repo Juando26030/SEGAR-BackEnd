@@ -9,6 +9,7 @@ import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
+import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
@@ -90,20 +91,15 @@ public class EmailService {
     }
 
     /**
-     * Busca correos con filtros avanzados y sincronización automática
+     * Busca correos con filtros avanzados SIN sincronización automática (optimizado)
      */
     @Transactional(readOnly = true)
     public Page<EmailResponse> searchEmails(EmailSearchFilter searchFilter) {
         log.info("Buscando correos con filtros: searchText='{}', fromAddress='{}', isRead={}",
             searchFilter.getSearchText(), searchFilter.getFromAddress(), searchFilter.getIsRead());
 
-        // Sincronizar automáticamente antes de buscar
-        try {
-            log.info("Sincronizando correos automáticamente antes de la búsqueda...");
-            synchronizeEmailsInternal();
-        } catch (Exception e) {
-            log.warn("No se pudieron sincronizar correos automáticamente: {}", e.getMessage());
-        }
+        // NO sincronizar automáticamente - esto hacía que fuera lento
+        // El usuario puede llamar a /sync manualmente si quiere actualizar
 
         // Convertir EmailSearchFilter a EmailFilterRequest para usar el repositorio existente
         EmailFilterRequest repoFilter = convertToRepositoryFilter(searchFilter);
@@ -135,41 +131,76 @@ public class EmailService {
     }
 
     /**
-     * Obtiene correos del buzón de entrada con sincronización automática (método simplificado)
+     * Obtiene correos del buzón de entrada SIN sincronización automática (optimizado)
      */
     @Transactional(readOnly = true)
     public Page<EmailResponse> getInboxEmails(EmailFilterRequest filter) {
-        // Usar el método de búsqueda avanzada
+        // Usar el método de búsqueda avanzada (ya no sincroniza automáticamente)
         EmailSearchFilter searchFilter = convertToSearchFilter(filter);
         return searchEmails(searchFilter);
     }
 
     /**
-     * Sincroniza correos desde el servidor
+     * Sincroniza correos desde el servidor de forma asíncrona (optimizado)
      */
-    public void synchronizeEmails() {
+    @Async("emailTaskExecutor")
+    public void synchronizeEmailsAsync() {
+        log.info("Iniciando sincronización asíncrona de correos...");
         synchronizeEmailsInternal();
     }
 
     /**
-     * Método interno para sincronización sin transacción de solo lectura
+     * Sincroniza correos de forma síncrona
+     */
+    public void synchronizeEmails() {
+        log.info("Iniciando sincronización síncrona de correos...");
+        synchronizeEmailsInternal();
+    }
+
+    /**
+     * Método interno para sincronización optimizada - solo trae correos nuevos
      */
     @Transactional
     public void synchronizeEmailsInternal() {
-        log.debug("Ejecutando sincronización interna de correos...");
+        log.info("📥 Ejecutando sincronización optimizada de correos...");
+        long startTime = System.currentTimeMillis();
 
         try {
+            // 🔥 OPTIMIZACIÓN 1: Obtener la fecha del último correo sincronizado
+            Optional<LocalDateTime> lastSyncDate = emailRepository.findLatestReceivedDate();
+
+            // 🔥 OPTIMIZACIÓN 2: Obtener todos los messageIds existentes para verificación rápida
+            List<String> existingMessageIds = emailRepository.findAllMessageIds();
+            log.info("📊 Correos existentes en BD: {} (último: {})",
+                existingMessageIds.size(),
+                lastSyncDate.orElse(LocalDateTime.now().minusDays(30)));
+
+            // 🔥 OPTIMIZACIÓN 3: Solo traer correos nuevos desde el servidor
             List<Email> newEmails = emailReader.readNewEmails();
             int savedCount = 0;
+            int updatedCount = 0;
+            int skippedCount = 0;
+
+            log.info("📬 Procesando {} correos del servidor...", newEmails.size());
 
             for (Email email : newEmails) {
-                // Verificar si el correo ya existe por Message-ID
-                Optional<Email> existing = Optional.empty();
-                if (email.getMessageId() != null) {
-                    existing = emailRepository.findByMessageId(email.getMessageId());
+                // 🔥 OPTIMIZACIÓN 4: Verificación rápida en memoria antes de consultar BD
+                if (email.getMessageId() != null && existingMessageIds.contains(email.getMessageId())) {
+                    // El correo ya existe, solo actualizar estado de lectura si cambió
+                    Optional<Email> existing = emailRepository.findByMessageId(email.getMessageId());
+                    if (existing.isPresent() && !existing.get().getIsRead().equals(email.getIsRead())) {
+                        Email existingEmail = existing.get();
+                        existingEmail.setIsRead(email.getIsRead());
+                        emailRepository.save(existingEmail);
+                        updatedCount++;
+                    } else {
+                        skippedCount++;
+                    }
+                    continue;
                 }
 
-                if (existing.isEmpty()) {
+                // 🔥 OPTIMIZACIÓN 5: Solo procesar correos realmente nuevos
+                if (email.getMessageId() == null || !emailRepository.existsByMessageId(email.getMessageId())) {
                     // Configurar valores para correo entrante
                     email.setType(EmailType.INBOUND);
                     email.setStatus(EmailStatus.RECEIVED);
@@ -178,35 +209,20 @@ public class EmailService {
                     }
 
                     // Guardar correo con sus adjuntos
-                    Email savedEmail = emailRepository.save(email);
+                    emailRepository.save(email);
                     savedCount++;
-
-                    log.debug("Correo sincronizado automáticamente: ID={}, Subject={}, From={}",
-                        savedEmail.getId(), savedEmail.getSubject(), savedEmail.getFromAddress());
                 } else {
-                    // Solo actualizar el estado de leído si cambió
-                    Email existingEmail = existing.get();
-                    if (!existingEmail.getIsRead().equals(email.getIsRead())) {
-                        existingEmail.setIsRead(email.getIsRead());
-                        emailRepository.save(existingEmail);
-                        log.debug("Actualizado estado de lectura automáticamente para correo: {}", existingEmail.getSubject());
-                    }
+                    skippedCount++;
                 }
             }
 
-            if (savedCount > 0) {
-                log.info("Sincronización automática completada. {} correos nuevos guardados de {} encontrados",
-                    savedCount, newEmails.size());
-            } else {
-                log.debug("Sincronización automática completada. No hay correos nuevos.");
-            }
+            long duration = System.currentTimeMillis() - startTime;
+            log.info("✅ Sincronización completada en {}ms - ✨ {} nuevos, 🔄 {} actualizados, ⏭️ {} omitidos, 📊 {} total procesados",
+                duration, savedCount, updatedCount, skippedCount, newEmails.size());
 
         } catch (EmailReadingException e) {
-            log.warn("Error en sincronización automática: {}", e.getMessage());
-            throw new RuntimeException("Error durante la sincronización automática de correos", e);
-        } catch (Exception e) {
-            log.warn("Error inesperado en sincronización automática: {}", e.getMessage());
-            throw new RuntimeException("Error inesperado durante la sincronización automática", e);
+            log.error("❌ Error en sincronización: {}", e.getMessage());
+            throw new RuntimeException("Error durante la sincronización de correos", e);
         }
     }
 
@@ -302,6 +318,14 @@ public class EmailService {
     @Transactional(readOnly = true)
     public long getUnreadEmailCount() {
         return emailRepository.countByIsReadFalse();
+    }
+
+    /**
+     * Obtiene el conteo total de correos
+     */
+    @Transactional(readOnly = true)
+    public long getTotalEmailCount() {
+        return emailRepository.count();
     }
 
     /**

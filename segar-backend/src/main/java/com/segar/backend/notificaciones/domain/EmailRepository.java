@@ -3,6 +3,7 @@ package com.segar.backend.notificaciones.domain;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
@@ -68,6 +69,18 @@ public interface EmailRepository extends JpaRepository<Email, Long> {
     Page<Email> findEmailsWithAttachments(Pageable pageable);
 
     // Eliminar correos antiguos
+    @Modifying
     @Query("DELETE FROM Email e WHERE e.createdAt < :cutoffDate AND e.status = :status")
     void deleteOldEmails(@Param("cutoffDate") LocalDateTime cutoffDate, @Param("status") EmailStatus status);
+
+    // Obtener la fecha del correo más reciente en BD
+    @Query("SELECT MAX(e.receivedDate) FROM Email e WHERE e.type = 'INBOUND'")
+    Optional<LocalDateTime> findLatestReceivedDate();
+
+    // Verificar si existe un correo por messageId (más eficiente que findByMessageId)
+    boolean existsByMessageId(String messageId);
+
+    // Obtener todos los messageIds existentes (para batch checking)
+    @Query("SELECT e.messageId FROM Email e WHERE e.messageId IS NOT NULL AND e.type = 'INBOUND'")
+    List<String> findAllMessageIds();
 }

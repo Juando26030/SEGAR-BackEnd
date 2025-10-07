@@ -2,9 +2,10 @@ package com.segar.backend.documentos.service;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.segar.backend.documentos.domain.*;
-import com.segar.backend.documentos.infrastructure.*;
-import com.segar.backend.documentos.api.dto.*;
+import com.segar.backend.documentos.api.dto.DocumentTemplateDTO;
+import com.segar.backend.documentos.domain.DocumentTemplate;
+import com.segar.backend.documentos.infrastructure.DocumentTemplateRepository;
+import com.segar.backend.security.service.AuthenticatedUserService;
 import com.segar.backend.shared.domain.CategoriaRiesgo;
 import com.segar.backend.shared.domain.TipoTramite;
 import lombok.RequiredArgsConstructor;
@@ -25,6 +26,7 @@ public class DocumentTemplateServiceImpl {
 
     private final DocumentTemplateRepository documentTemplateRepository;
     private final ObjectMapper objectMapper;
+    private final AuthenticatedUserService authenticatedUserService;
 
      
     public List<DocumentTemplateDTO> getAllActiveTemplates() {
@@ -79,7 +81,7 @@ public class DocumentTemplateServiceImpl {
         validateTemplateDTO(templateDTO);
 
         DocumentTemplate template = convertToEntity(templateDTO);
-        template.setCreatedBy("SYSTEM"); // TODO: Obtener del contexto de seguridad
+        template.setCreatedBy(authenticatedUserService.getCurrentUsername());
 
         DocumentTemplate savedTemplate = documentTemplateRepository.save(template);
         log.info("Plantilla creada exitosamente con ID: {}", savedTemplate.getId());

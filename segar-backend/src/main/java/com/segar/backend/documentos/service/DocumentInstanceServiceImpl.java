@@ -5,6 +5,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.segar.backend.documentos.domain.*;
 import com.segar.backend.documentos.infrastructure.*;
 import com.segar.backend.documentos.api.dto.*;
+import com.segar.backend.security.service.AuthenticatedUserService;
 import com.segar.backend.shared.domain.TipoTramite;
 import com.segar.backend.shared.domain.Tramite;
 import com.segar.backend.shared.infrastructure.TramiteRepository;
@@ -29,14 +30,13 @@ public class DocumentInstanceServiceImpl {
     private final DocumentTemplateRepository documentTemplateRepository;
     private final DocumentTemplateServiceImpl documentTemplateService;
     private final LocalFileStorageService fileStorageService;
+    private final AuthenticatedUserService authenticatedUserService;
+    private final TramiteRepository tramiteRepository;
     private final ObjectMapper objectMapper;
     private final ThymeleafDocumentPdfService documentPdfService;
 
 
-    private final TramiteRepository tramiteRepository;
 
-
-     
     public List<DocumentInstanceDTO> getInstancesByTramite(Long tramiteId) {
         log.info("Obteniendo instancias de documentos para trámite: {}", tramiteId);
 
@@ -89,11 +89,11 @@ public class DocumentInstanceServiceImpl {
         DocumentInstance instance = DocumentInstance.builder()
                 .template(template)
                 .tramite(tramite)
-                .empresaId(1L) // TODO: Obtener empresaId del contexto de usuario autenticado
+                .empresaId(authenticatedUserService.getCurrentUserEmpresaId())
                 .status(DocumentInstance.DocumentStatus.DRAFT)
                 .filledData(requestDTO.getFilledData() != null ? convertMapToJson(requestDTO.getFilledData()) : null)
                 .metadata(requestDTO.getMetadata() != null ? convertMapToJson(requestDTO.getMetadata()) : null)
-                .createdBy("SYSTEM") // TODO: Obtener del contexto de seguridad
+                .createdBy(authenticatedUserService.getCurrentUsername())
                 .build();
 
         DocumentInstance savedInstance = documentInstanceRepository.save(instance);

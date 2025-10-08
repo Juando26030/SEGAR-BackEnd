@@ -66,6 +66,10 @@ public class DatabaseInit implements ApplicationRunner{
     @Autowired
     private PagoRepository pagoRepository;
 
+    // Repositorio para documentos de trámites INVIMA
+    @Autowired
+    private TramiteDocumentoRepository tramiteDocumentoRepository;
+
     @Override
     public void run(ApplicationArguments args) {
         // ========== INICIALIZAR PLANTILLAS DE DOCUMENTOS DINÁMICOS ==========

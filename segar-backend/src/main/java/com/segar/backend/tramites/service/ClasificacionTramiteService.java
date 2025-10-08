@@ -13,28 +13,42 @@ import java.util.List;
 
 /**
  * Servicio que implementa la lógica de clasificación de trámites INVIMA
- * Determina automáticamente el tipo de trámite y documentos requeridos
+ * Con todas las reglas de negocio oficiales del proceso de registro sanitario
  */
 @Service
 public class ClasificacionTramiteService {
 
+    // Poblaciones vulnerables según normativa INVIMA
     private static final List<String> POBLACIONES_VULNERABLES = Arrays.asList(
-            "infantil", "gestantes", "adultos mayores", "tercera-edad", "especial"
+            "infantil", "gestantes", "gestante", "adultos mayores", "adulto mayor",
+            "tercera-edad", "especial", "bebés", "bebes", "niños", "ninos"
+    );
+
+    // Procesamientos que elevan automáticamente a RSA
+    private static final List<String> PROCESAMIENTOS_ALTO_RIESGO = Arrays.asList(
+            "esterilizado", "esterilizacion", "atmósfera modificada", "atmosfera modificada",
+            "congelado", "congelación", "congelacion", "ultra congelado"
+    );
+
+    // Categorías con riesgo inherente alto
+    private static final List<String> CATEGORIAS_RIESGO_ALTO = Arrays.asList(
+            "lacteos", "lácteos", "carnicos", "cárnicos", "productos carnicos",
+            "derivados carnicos", "derivados lácteos"
     );
 
     /**
-     * Clasifica un producto y determina el tipo de trámite y documentos requeridos
+     * Clasifica un producto y determina el tipo de trámite según reglas INVIMA
      */
     public ResultadoClasificacionDTO clasificarProducto(ClasificacionProductoDTO clasificacion) {
-        // 1. Determinar tipo de trámite
-        TipoTramiteINVIMA tipoTramite = determinarTipoTramite(clasificacion);
+        // 1. Determinar tipo de trámite aplicando todas las reglas
+        TipoTramiteINVIMA tipoTramite = determinarTipoTramiteConReglas(clasificacion);
 
         // 2. Generar documentos según tipo de trámite
         List<DocumentoRequeridoDTO> documentos = generarDocumentosRequeridos(
                 tipoTramite, clasificacion
         );
 
-        // 3. Generar advertencias
+        // 3. Generar advertencias contextuales
         List<String> advertencias = generarAdvertencias(tipoTramite, clasificacion);
 
         // 4. Determinar tiempos y costos
@@ -52,25 +66,51 @@ public class ClasificacionTramiteService {
     }
 
     /**
-     * Determina el tipo de trámite según las reglas INVIMA
+     * Determina el tipo de trámite aplicando TODAS las reglas de negocio INVIMA
+     * en orden de prioridad
      */
-    private TipoTramiteINVIMA determinarTipoTramite(ClasificacionProductoDTO clasificacion) {
-        // Regla 1: Población vulnerable → RSA
+    private TipoTramiteINVIMA determinarTipoTramiteConReglas(ClasificacionProductoDTO clasificacion) {
+        // REGLA 1: Población vulnerable → RSA (MÁXIMA PRIORIDAD)
         if (esPoblacionVulnerable(clasificacion.getPoblacionObjetivo())) {
             return TipoTramiteINVIMA.RSA;
         }
 
-        // Regla 2: Riesgo alto → RSA
+        // REGLA 2: Procesamiento de alto riesgo → RSA
+        if (esProcesamientoAltoRiesgo(clasificacion.getProcesamiento())) {
+            return TipoTramiteINVIMA.RSA;
+        }
+
+        // REGLA 3: Riesgo alto explícito → RSA
         if (clasificacion.getNivelRiesgo() == NivelRiesgo.ALTO) {
             return TipoTramiteINVIMA.RSA;
         }
 
-        // Regla 3: Riesgo medio → PSA
+        // REGLA 4: Categoría de riesgo inherente alto + riesgo medio → RSA
+        if (clasificacion.getNivelRiesgo() == NivelRiesgo.MEDIO &&
+            esCategoriaRiesgoAlto(clasificacion.getCategoria())) {
+            return TipoTramiteINVIMA.RSA;
+        }
+
+        // REGLA 5: Producto importado + riesgo medio o alto → Mínimo PSA
+        if (Boolean.TRUE.equals(clasificacion.getEsImportado())) {
+            // Si ya tiene riesgo alto, seguirá siendo RSA por reglas anteriores
+            // Si tiene riesgo medio, mínimo PSA
+            if (clasificacion.getNivelRiesgo() == NivelRiesgo.MEDIO) {
+                return TipoTramiteINVIMA.PSA;
+            }
+        }
+
+        // REGLA 6: Riesgo medio → PSA
         if (clasificacion.getNivelRiesgo() == NivelRiesgo.MEDIO) {
             return TipoTramiteINVIMA.PSA;
         }
 
-        // Regla 4: Riesgo bajo → NSO
+        // REGLA 7: Riesgo bajo + población general → NSO
+        if (clasificacion.getNivelRiesgo() == NivelRiesgo.BAJO) {
+            return TipoTramiteINVIMA.NSO;
+        }
+
+        // REGLA POR DEFECTO: NSO (caso más permisivo)
         return TipoTramiteINVIMA.NSO;
     }
 
@@ -160,10 +200,10 @@ public class ClasificacionTramiteService {
                 ))
                 .build());
 
-        // 3. Etiqueta
+        // 3. Etiqueta Digital
         docs.add(DocumentoRequeridoDTO.builder()
-                .id("etiqueta")
-                .nombre("Etiqueta o Diseño de Rotulado")
+                .id("etiqueta_digital")
+                .nombre("Etiqueta Digital o Diseño de Rotulado")
                 .tipo(TipoDocumentoRequerido.EXTERNO)
                 .formato(FormatoDocumento.IMAGE)
                 .descripcion("Etiqueta del producto según Resolución 5109 de 2005")
@@ -226,7 +266,7 @@ public class ClasificacionTramiteService {
     private List<DocumentoRequeridoDTO> getDocumentosPSA() {
         List<DocumentoRequeridoDTO> docs = new ArrayList<>();
 
-        // 1. Análisis Fisicoquímico
+        // 6. Análisis Fisicoquímico
         docs.add(DocumentoRequeridoDTO.builder()
                 .id("analisis_fisicoquimico")
                 .nombre("Análisis Fisicoquímico")
@@ -248,7 +288,7 @@ public class ClasificacionTramiteService {
                 ))
                 .build());
 
-        // 2. Análisis Microbiológico
+        // 7. Análisis Microbiológico
         docs.add(DocumentoRequeridoDTO.builder()
                 .id("analisis_microbiologico")
                 .nombre("Análisis Microbiológico")
@@ -271,7 +311,7 @@ public class ClasificacionTramiteService {
                 ))
                 .build());
 
-        // 3. Certificación BPM
+        // 8. Certificación BPM
         docs.add(DocumentoRequeridoDTO.builder()
                 .id("certificacion_bpm")
                 .nombre("Certificación BPM del Establecimiento")
@@ -292,7 +332,7 @@ public class ClasificacionTramiteService {
                 ))
                 .build());
 
-        // 4. Ficha Técnica Detallada
+        // 9. Ficha Técnica Detallada
         docs.add(DocumentoRequeridoDTO.builder()
                 .id("ficha_tecnica_detallada")
                 .nombre("Ficha Técnica Detallada")
@@ -311,7 +351,7 @@ public class ClasificacionTramiteService {
                 ))
                 .build());
 
-        // 5. Plan BPM
+        // 10. Plan BPM
         docs.add(DocumentoRequeridoDTO.builder()
                 .id("plan_bpm")
                 .nombre("Plan BPM")
@@ -342,7 +382,7 @@ public class ClasificacionTramiteService {
     private List<DocumentoRequeridoDTO> getDocumentosRSA(ClasificacionProductoDTO clasificacion) {
         List<DocumentoRequeridoDTO> docs = new ArrayList<>();
 
-        // 1. Estudios de Estabilidad
+        // 11. Estudios de Estabilidad
         docs.add(DocumentoRequeridoDTO.builder()
                 .id("estudios_estabilidad")
                 .nombre("Estudios de Estabilidad y Vida Útil")
@@ -365,7 +405,7 @@ public class ClasificacionTramiteService {
                 ))
                 .build());
 
-        // 2. Certificación HACCP
+        // 12. Certificación HACCP
         docs.add(DocumentoRequeridoDTO.builder()
                 .id("certificacion_haccp")
                 .nombre("Certificación HACCP")
@@ -386,7 +426,7 @@ public class ClasificacionTramiteService {
                 ))
                 .build());
 
-        // 3. Plan HACCP
+        // 13. Plan HACCP
         docs.add(DocumentoRequeridoDTO.builder()
                 .id("plan_haccp")
                 .nombre("Plan HACCP Completo")
@@ -407,7 +447,27 @@ public class ClasificacionTramiteService {
                 ))
                 .build());
 
-        // 4. Estudios Nutricionales (si aplica población vulnerable)
+        // 14. Certificado BPM INVIMA Vigente
+        docs.add(DocumentoRequeridoDTO.builder()
+                .id("certificado_bpm_invima_vigente")
+                .nombre("Certificado BPM INVIMA Vigente")
+                .tipo(TipoDocumentoRequerido.EXTERNO)
+                .formato(FormatoDocumento.PDF)
+                .descripcion("Certificado BPM específico de INVIMA con vigencia actual")
+                .categoria(CategoriaDocumento.CERTIFICACION)
+                .obligatorio(true)
+                .orden(23)
+                .icono("stamp")
+                .campos(Arrays.asList(
+                        crearCampo("numero_certificado_invima", "text", true, "Número de certificado INVIMA"),
+                        crearCampo("fecha_expedicion", "date", true, "Fecha de expedición"),
+                        crearCampo("vigencia", "date", true, "Fecha de vencimiento"),
+                        crearCampo("establecimiento", "text", true, "Nombre del establecimiento"),
+                        crearCampo("archivo", "file", true, "Certificado PDF")
+                ))
+                .build());
+
+        // 15. Estudios Nutricionales (si aplica población vulnerable)
         if (esPoblacionVulnerable(clasificacion.getPoblacionObjetivo())) {
             docs.add(DocumentoRequeridoDTO.builder()
                     .id("estudios_nutricionales")
@@ -417,7 +477,7 @@ public class ClasificacionTramiteService {
                     .descripcion("Estudios nutricionales para población vulnerable")
                     .categoria(CategoriaDocumento.ESTUDIOS)
                     .obligatorio(true)
-                    .orden(23)
+                    .orden(24)
                     .icono("heartbeat")
                     .campos(Arrays.asList(
                             crearCampo("composicion_completa", "textarea", true, "Macros y micronutrientes"),
@@ -433,16 +493,16 @@ public class ClasificacionTramiteService {
                     .build());
         }
 
-        // 5. Advertencias y Etiquetado Especial
+        // 16. Advertencias Obligatorias en Etiqueta
         docs.add(DocumentoRequeridoDTO.builder()
                 .id("advertencias_etiquetado")
-                .nombre("Advertencias y Etiquetado Especial")
+                .nombre("Advertencias Obligatorias en Etiqueta")
                 .tipo(TipoDocumentoRequerido.AUTOGENERADO)
                 .formato(FormatoDocumento.PDF)
                 .descripcion("Advertencias especiales para población vulnerable")
                 .categoria(CategoriaDocumento.OTROS)
                 .obligatorio(true)
-                .orden(24)
+                .orden(25)
                 .icono("exclamation-triangle")
                 .campos(Arrays.asList(
                         crearCampo("advertencia_principal", "textarea", true,
@@ -452,7 +512,7 @@ public class ClasificacionTramiteService {
                 ))
                 .build());
 
-        // 6. Protocolo de Estabilidad
+        // 17. Protocolo de Estabilidad
         docs.add(DocumentoRequeridoDTO.builder()
                 .id("protocolo_estabilidad")
                 .nombre("Protocolo de Estabilidad")
@@ -461,7 +521,7 @@ public class ClasificacionTramiteService {
                 .descripcion("Protocolo detallado de estudios de estabilidad")
                 .categoria(CategoriaDocumento.ESTUDIOS)
                 .obligatorio(true)
-                .orden(25)
+                .orden(26)
                 .icono("file-contract")
                 .campos(Arrays.asList(
                         crearCampo("condiciones", "textarea", true, "Condiciones del protocolo"),
@@ -483,7 +543,7 @@ public class ClasificacionTramiteService {
 
         docs.add(DocumentoRequeridoDTO.builder()
                 .id("certificado_venta_libre")
-                .nombre("Certificado de Venta Libre / Registro País de Origen")
+                .nombre("Certificado de Venta Libre del País de Origen")
                 .tipo(TipoDocumentoRequerido.EXTERNO)
                 .formato(FormatoDocumento.PDF)
                 .descripcion("Documento que certifica la libre venta del producto en su país de origen")
@@ -578,7 +638,7 @@ public class ClasificacionTramiteService {
                 advertencias.add("⚠️ Este trámite requiere estudios de estabilidad y certificación HACCP");
                 advertencias.add("⏱️ El tiempo de evaluación puede extenderse de 60 a 90 días hábiles");
                 advertencias.add("🔬 Se requieren análisis de laboratorio acreditado por el ONAC");
-                advertencias.add("✅ El establecimiento debe contar con certificación BPM vigente");
+                advertencias.add("✅ El establecimiento debe contar con certificación BPM INVIMA vigente");
 
                 if (Boolean.TRUE.equals(clasificacion.getEsImportado())) {
                     advertencias.add("🌍 Productos importados requieren documentación adicional del país de origen");
@@ -589,6 +649,14 @@ public class ClasificacionTramiteService {
                     advertencias.add("👶 Productos para población vulnerable requieren advertencias especiales en el etiquetado");
                     advertencias.add("🔬 Se requieren estudios nutricionales especializados");
                 }
+
+                if (esProcesamientoAltoRiesgo(clasificacion.getProcesamiento())) {
+                    advertencias.add("🌡️ El tipo de procesamiento requiere controles adicionales de temperatura y almacenamiento");
+                }
+
+                if (esCategoriaRiesgoAlto(clasificacion.getCategoria())) {
+                    advertencias.add("🥩 La categoría del producto tiene riesgo inherente alto y requiere controles estrictos");
+                }
                 break;
 
             case PSA:
@@ -598,11 +666,16 @@ public class ClasificacionTramiteService {
                 if (Boolean.TRUE.equals(clasificacion.getEsImportado())) {
                     advertencias.add("🌍 Productos importados requieren documentación adicional del país de origen");
                 }
+
+                if (esCategoriaRiesgoAlto(clasificacion.getCategoria())) {
+                    advertencias.add("⚠️ La categoría del producto requiere controles adicionales de calidad");
+                }
                 break;
 
             case NSO:
                 advertencias.add("📋 Trámite de bajo riesgo - proceso simplificado");
                 advertencias.add("⏱️ Tiempo estimado: 15-30 días hábiles");
+                advertencias.add("✅ Verificar que todos los documentos estén actualizados y vigentes");
                 break;
         }
 
@@ -613,48 +686,36 @@ public class ClasificacionTramiteService {
      * Obtiene la descripción del tipo de trámite
      */
     private String obtenerDescripcionTramite(TipoTramiteINVIMA tipoTramite) {
-        switch (tipoTramite) {
-            case NSO:
-                return "Notificación Sanitaria Obligatoria - Para productos de bajo riesgo y población general";
-            case PSA:
-                return "Permiso Sanitario - Para productos de riesgo medio que requieren control físico-químico y microbiológico";
-            case RSA:
-                return "Registro Sanitario - Para productos de alto riesgo o población vulnerable que requieren HACCP y estudios de estabilidad";
-            default:
-                return "";
-        }
+        return switch (tipoTramite) {
+            case NSO ->
+                    "Notificación Sanitaria Obligatoria - Para productos de bajo riesgo y población general";
+            case PSA ->
+                    "Permiso Sanitario - Para productos de riesgo medio que requieren control físico-químico y microbiológico";
+            case RSA ->
+                    "Registro Sanitario - Para productos de alto riesgo o población vulnerable que requieren HACCP y estudios de estabilidad";
+        };
     }
 
     /**
      * Obtiene el tiempo estimado según el tipo de trámite
      */
     private String obtenerTiempoEstimado(TipoTramiteINVIMA tipoTramite) {
-        switch (tipoTramite) {
-            case NSO:
-                return "15-30 días hábiles";
-            case PSA:
-                return "30-60 días hábiles";
-            case RSA:
-                return "60-90 días hábiles";
-            default:
-                return "";
-        }
+        return switch (tipoTramite) {
+            case NSO -> "15-30 días hábiles";
+            case PSA -> "30-60 días hábiles";
+            case RSA -> "60-90 días hábiles";
+        };
     }
 
     /**
      * Obtiene el costo estimado según el tipo de trámite
      */
     private String obtenerCostoEstimado(TipoTramiteINVIMA tipoTramite) {
-        switch (tipoTramite) {
-            case NSO:
-                return "1-2 SMMLV";
-            case PSA:
-                return "3-5 SMMLV";
-            case RSA:
-                return "8-15 SMMLV";
-            default:
-                return "";
-        }
+        return switch (tipoTramite) {
+            case NSO -> "1-2 SMMLV";
+            case PSA -> "3-5 SMMLV";
+            case RSA -> "8-15 SMMLV";
+        };
     }
 
     /**
@@ -662,8 +723,29 @@ public class ClasificacionTramiteService {
      */
     private boolean esPoblacionVulnerable(String poblacion) {
         if (poblacion == null) return false;
+        String poblacionLower = poblacion.toLowerCase();
         return POBLACIONES_VULNERABLES.stream()
-                .anyMatch(p -> poblacion.toLowerCase().contains(p));
+                .anyMatch(poblacionLower::contains);
+    }
+
+    /**
+     * Verifica si el procesamiento es de alto riesgo
+     */
+    private boolean esProcesamientoAltoRiesgo(String procesamiento) {
+        if (procesamiento == null) return false;
+        String procesamientoLower = procesamiento.toLowerCase();
+        return PROCESAMIENTOS_ALTO_RIESGO.stream()
+                .anyMatch(procesamientoLower::contains);
+    }
+
+    /**
+     * Verifica si la categoría tiene riesgo inherente alto
+     */
+    private boolean esCategoriaRiesgoAlto(String categoria) {
+        if (categoria == null) return false;
+        String categoriaLower = categoria.toLowerCase();
+        return CATEGORIAS_RIESGO_ALTO.stream()
+                .anyMatch(categoriaLower::contains);
     }
 
     /**

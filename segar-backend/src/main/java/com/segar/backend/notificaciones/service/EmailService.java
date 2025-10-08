@@ -4,6 +4,7 @@ import com.segar.backend.notificaciones.api.dto.*;
 import com.segar.backend.notificaciones.domain.*;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.PageRequest;
@@ -32,6 +33,9 @@ public class EmailService {
     private final EmailRepository emailRepository;
     private final EmailSender emailSender;
     private final EmailReader emailReader;
+
+    @Value("${spring.mail.username}")
+    private String systemEmailAddress;
 
     /**
      * Envía un correo electrónico
@@ -304,12 +308,49 @@ public class EmailService {
     }
 
     /**
-     * Obtiene correos enviados
+     * Obtiene correos enviados DIRECTAMENTE desde Gmail (no desde BD)
+     * Se conecta al servidor IMAP y lee la carpeta "Sent Mail"
      */
     @Transactional(readOnly = true)
     public Page<EmailResponse> getSentEmails(Pageable pageable) {
-        Page<Email> emails = emailRepository.findByTypeOrderByCreatedAtDesc(EmailType.OUTBOUND, pageable);
-        return emails.map(this::mapToEmailResponse);
+        log.info("🔍 Obteniendo correos enviados DIRECTAMENTE desde Gmail...");
+
+        try {
+            // Leer correos enviados desde el servidor IMAP de Gmail
+            List<Email> sentEmails = emailReader.readSentEmails();
+
+            log.info("✅ {} correos enviados leídos desde Gmail", sentEmails.size());
+
+            // Aplicar paginación manual a la lista
+            int start = (int) pageable.getOffset();
+            int end = Math.min((start + pageable.getPageSize()), sentEmails.size());
+
+            List<Email> pagedEmails = sentEmails.subList(start, end);
+
+            // Convertir a EmailResponse
+            List<EmailResponse> emailResponses = pagedEmails.stream()
+                .map(this::mapToEmailResponse)
+                .collect(Collectors.toList());
+
+            // Crear Page con los resultados
+            Page<EmailResponse> result = new PageImpl<>(
+                emailResponses,
+                pageable,
+                sentEmails.size()
+            );
+
+            log.info("📄 Retornando página {}/{} con {} elementos",
+                pageable.getPageNumber() + 1,
+                result.getTotalPages(),
+                result.getNumberOfElements());
+
+            return result;
+
+        } catch (EmailReadingException e) {
+            log.error("❌ Error leyendo correos enviados desde Gmail: {}", e.getMessage(), e);
+            // Retornar página vacía en caso de error
+            return new PageImpl<>(new ArrayList<>(), pageable, 0);
+        }
     }
 
     /**
@@ -460,7 +501,7 @@ public class EmailService {
                                    List<EmailAddress> ccAddresses, List<EmailAddress> bccAddresses,
                                    EmailContent content) {
         return Email.builder()
-            .fromAddress("soportecasalunaairbnb@gmail.com")
+            .fromAddress(systemEmailAddress)  // Usar la variable inyectada en lugar de hardcodear
             .toAddresses(toAddresses.stream().map(EmailAddress::getAddress).collect(Collectors.joining(", ")))
             .ccAddresses(ccAddresses.isEmpty() ? null : ccAddresses.stream().map(EmailAddress::getAddress).collect(Collectors.joining(", ")))
             .bccAddresses(bccAddresses.isEmpty() ? null : bccAddresses.stream().map(EmailAddress::getAddress).collect(Collectors.joining(", ")))

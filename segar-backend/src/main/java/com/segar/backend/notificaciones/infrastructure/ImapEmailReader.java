@@ -41,6 +41,89 @@ public class ImapEmailReader implements EmailReader {
         return readEmailsFromFolder("INBOX");
     }
 
+    /**
+     * Lee correos enviados desde el servidor IMAP (carpeta "Sent" de Gmail)
+     */
+    public List<Email> readSentEmails() throws EmailReadingException {
+        try {
+            log.info("📤 Leyendo correos enviados desde Gmail...");
+
+            // Gmail usa diferentes nombres para la carpeta de enviados
+            // Intentar con los nombres más comunes
+            String[] possibleSentFolderNames = {
+                "[Gmail]/Sent Mail",  // Gmail en inglés
+                "[Gmail]/Enviados",   // Gmail en español
+                "Sent",               // Nombre estándar IMAP
+                "Sent Items"          // Outlook/Exchange
+            };
+
+            connectToStore();
+
+            // Intentar encontrar la carpeta de enviados
+            for (String folderName : possibleSentFolderNames) {
+                try {
+                    Folder sentFolder = store.getFolder(folderName);
+                    if (sentFolder.exists()) {
+                        log.info("✅ Carpeta de enviados encontrada: {}", folderName);
+                        sentFolder.open(Folder.READ_ONLY);
+
+                        // Obtener los últimos 50 correos enviados
+                        Message[] allMessages = sentFolder.getMessages();
+                        int totalCount = allMessages.length;
+                        int startIndex = Math.max(0, totalCount - 50);
+
+                        log.info("📊 Total de correos enviados: {}, trayendo los últimos {}", totalCount, totalCount - startIndex);
+
+                        Message[] recentMessages = Arrays.copyOfRange(allMessages, startIndex, totalCount);
+
+                        // Ordenar por fecha de envío (más recientes primero)
+                        Arrays.sort(recentMessages, (a, b) -> {
+                            try {
+                                Date dateA = a.getSentDate();
+                                Date dateB = b.getSentDate();
+                                if (dateA == null && dateB == null) return 0;
+                                if (dateA == null) return 1;
+                                if (dateB == null) return -1;
+                                return dateB.compareTo(dateA);
+                            } catch (MessagingException e) {
+                                return 0;
+                            }
+                        });
+
+                        List<Email> emails = new ArrayList<>();
+                        for (Message message : recentMessages) {
+                            try {
+                                Email email = convertMessageToEmail(message);
+                                // Marcar como OUTBOUND (enviado)
+                                email.setType(EmailType.OUTBOUND);
+                                email.setStatus(EmailStatus.SENT);
+                                emails.add(email);
+                            } catch (Exception e) {
+                                log.warn("Error procesando mensaje enviado: {}", e.getMessage());
+                            }
+                        }
+
+                        sentFolder.close(false);
+                        log.info("✅ {} correos enviados leídos desde Gmail", emails.size());
+                        return emails;
+                    }
+                } catch (MessagingException e) {
+                    log.debug("Carpeta {} no encontrada, intentando siguiente...", folderName);
+                }
+            }
+
+            // Si no se encuentra ninguna carpeta, retornar lista vacía
+            log.warn("⚠️ No se encontró la carpeta de correos enviados en Gmail");
+            return new ArrayList<>();
+
+        } catch (Exception e) {
+            log.error("❌ Error leyendo correos enviados: {}", e.getMessage(), e);
+            throw new EmailReadingException("Error leyendo correos enviados: " + e.getMessage(), e);
+        } finally {
+            closeStore();
+        }
+    }
+
     @Override
     public List<Email> readNewEmails() throws EmailReadingException {
         try {

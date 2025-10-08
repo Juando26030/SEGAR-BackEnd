@@ -20,6 +20,11 @@ public interface EmailReader {
     List<Email> readNewEmails() throws EmailReadingException;
 
     /**
+     * Lee correos enviados desde el servidor IMAP (carpeta Sent Mail)
+     */
+    List<Email> readSentEmails() throws EmailReadingException;
+
+    /**
      * Lee correos con filtros específicos desde el servidor IMAP
      */
     List<Email> readEmailsWithFilters(EmailSearchFilter filter) throws EmailReadingException;

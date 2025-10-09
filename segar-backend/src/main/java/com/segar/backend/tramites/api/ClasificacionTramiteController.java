@@ -40,9 +40,9 @@ public class ClasificacionTramiteController {
 
     /**
      * Endpoint 2: Guardar documento completado (con o sin archivo)
-     * POST /api/tramites/{id}/documentos
+     * POST /api/tramites/{id}/documentos/guardar
      */
-    @PostMapping(value = "/{id}/documentos", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    @PostMapping(value = "/{id}/documentos/guardar", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public ResponseEntity<Map<String, Object>> guardarDocumento(
             @PathVariable Long id,
             @RequestPart("documento_id") String documentoId,
@@ -78,9 +78,9 @@ public class ClasificacionTramiteController {
 
     /**
      * Endpoint adicional: Obtener documentos guardados de un trámite
-     * GET /api/tramites/{id}/documentos-invima
+     * GET /api/tramites/{id}/documentos/invima
      */
-    @GetMapping("/{id}/documentos-invima")
+    @GetMapping("/{id}/documentos/invima")
     public ResponseEntity<Map<String, Object>> obtenerDocumentos(@PathVariable Long id) {
         Map<String, Object> documentos = documentoService.obtenerDocumentos(id);
         return ResponseEntity.ok(documentos);

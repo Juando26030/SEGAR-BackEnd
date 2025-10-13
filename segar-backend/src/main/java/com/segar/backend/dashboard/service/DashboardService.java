@@ -192,4 +192,46 @@ public class DashboardService {
         }
     }
 
+    //Busqueda Global
+
+    public BusquedaGlobalDTO busquedaGlobal(String query, int limitTramites, int limitRegistros) {
+        if (query == null || query.trim().isEmpty()) {
+            return new BusquedaGlobalDTO(List.of(), List.of(), 0, 0);
+        }
+
+        String queryTrimmed = query.trim();
+
+        // Buscar trámites
+        List<Object[]> tramitesData = queryRepository.buscarTramites(queryTrimmed, limitTramites);
+        List<BusquedaGlobalDTO.ResultadoTramiteDTO> tramites = tramitesData.stream()
+                .map(row -> new BusquedaGlobalDTO.ResultadoTramiteDTO(
+                        ((Number) row[0]).longValue(),
+                        (String) row[1],
+                        (String) row[2],
+                        (String) row[3],
+                        String.valueOf(row[4]),
+                        (LocalDate) row[5],
+                        (LocalDateTime) row[6]
+                )).toList();
+
+        // Buscar registros sanitarios - ESTA LÍNEA FALTABA
+        List<Object[]> registrosData = queryRepository.buscarRegistrosSanitarios(queryTrimmed, limitRegistros);
+        List<BusquedaGlobalDTO.ResultadoRegistroDTO> registros = registrosData.stream()
+                .map(row -> new BusquedaGlobalDTO.ResultadoRegistroDTO(
+                        ((Number) row[0]).longValue(),
+                        (String) row[1],
+                        (String) row[2], // nombre del producto desde el join
+                        String.valueOf(row[3]),
+                        ((LocalDateTime) row[4]).toLocalDate(), // convertir a LocalDate
+                        ((LocalDateTime) row[5]).toLocalDate()  // convertir a LocalDate
+                )).toList();
+
+        // Contar totales
+        int totalTramites = queryRepository.countTramitesBusqueda(queryTrimmed);
+        int totalRegistros = queryRepository.countRegistrosBusqueda(queryTrimmed);
+
+        return new BusquedaGlobalDTO(tramites, registros, totalTramites, totalRegistros);
+    }
+
+
 }

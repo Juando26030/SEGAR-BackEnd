@@ -38,7 +38,7 @@ public class BusquedaGlobalDTO {
         private String numeroRegistro;
         private String productName;
         private String estado;
-        private LocalDate fechaExpedicion;
-        private LocalDate fechaVencimiento;
+        private LocalDateTime fechaExpedicion;
+        private LocalDateTime fechaVencimiento;
     }
 }

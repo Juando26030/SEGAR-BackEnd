@@ -195,43 +195,72 @@ public class DashboardService {
     //Busqueda Global
 
     public BusquedaGlobalDTO busquedaGlobal(String query, int limitTramites, int limitRegistros) {
-        if (query == null || query.trim().isEmpty()) {
-            return new BusquedaGlobalDTO(List.of(), List.of(), 0, 0);
+        String queryTrimmed = (query != null) ? query.trim() : "";
+
+        List<Object[]> tramitesData;
+        List<Object[]> registrosData;
+        int totalTramites;
+        int totalRegistros;
+        boolean esConsultaVacia = queryTrimmed.isEmpty();
+
+        if (esConsultaVacia) {
+            // Si la query está vacía, traer los primeros registros ordenados
+            tramitesData = queryRepository.tramitesRecientes(limitTramites);
+            registrosData = queryRepository.registrosSanitariosRecientes(limitRegistros);
+            totalTramites = (int) queryRepository.totalTramites();
+            totalRegistros = (int) queryRepository.totalRegistros();
+        } else {
+            // Búsqueda normal con filtros
+            tramitesData = queryRepository.buscarTramites(queryTrimmed, limitTramites);
+            registrosData = queryRepository.buscarRegistrosSanitarios(queryTrimmed, limitRegistros);
+            totalTramites = queryRepository.countTramitesBusqueda(queryTrimmed);
+            totalRegistros = queryRepository.countRegistrosBusqueda(queryTrimmed);
         }
 
-        String queryTrimmed = query.trim();
+        // Mapear trámites con lógica diferente según el origen
+        List<BusquedaGlobalDTO.ResultadoTramiteDTO> tramites;
 
-        // Buscar trámites
-        List<Object[]> tramitesData = queryRepository.buscarTramites(queryTrimmed, limitTramites);
-        List<BusquedaGlobalDTO.ResultadoTramiteDTO> tramites = tramitesData.stream()
-                .map(row -> new BusquedaGlobalDTO.ResultadoTramiteDTO(
-                        ((Number) row[0]).longValue(),
-                        (String) row[1],
-                        (String) row[2],
-                        (String) row[3],
-                        String.valueOf(row[4]),
-                        (LocalDate) row[5],
-                        (LocalDateTime) row[6]
-                )).toList();
+        if (esConsultaVacia) {
+            // Mapeo para tramitesRecientes (6 campos, sin submissionDate)
+            tramites = tramitesData.stream()
+                    .map(row -> new BusquedaGlobalDTO.ResultadoTramiteDTO(
+                            ((Number) row[0]).longValue(),
+                            (String) row[1],
+                            (String) row[2],
+                            (String) row[3],
+                            String.valueOf(row[4]),
+                            null,                    // submissionDate no disponible
+                            (LocalDateTime) row[5]   // lastUpdate en posición 5
+                    )).toList();
+        } else {
+            // Mapeo para buscarTramites (7 campos, con submissionDate)
+            tramites = tramitesData.stream()
+                    .map(row -> new BusquedaGlobalDTO.ResultadoTramiteDTO(
+                            ((Number) row[0]).longValue(),
+                            (String) row[1],
+                            (String) row[2],
+                            (String) row[3],
+                            String.valueOf(row[4]),
+                            (LocalDate) row[5],      // submissionDate en posición 5
+                            (LocalDateTime) row[6]   // lastUpdate en posición 6
+                    )).toList();
+        }
 
-        // Buscar registros sanitarios - ESTA LÍNEA FALTABA
-        List<Object[]> registrosData = queryRepository.buscarRegistrosSanitarios(queryTrimmed, limitRegistros);
+        // Mapear registros sanitarios (sin cambios)
         List<BusquedaGlobalDTO.ResultadoRegistroDTO> registros = registrosData.stream()
                 .map(row -> new BusquedaGlobalDTO.ResultadoRegistroDTO(
                         ((Number) row[0]).longValue(),
                         (String) row[1],
-                        (String) row[2], // nombre del producto desde el join
+                        (String) row[2],
                         String.valueOf(row[3]),
-                        ((LocalDateTime) row[4]).toLocalDate(), // convertir a LocalDate
-                        ((LocalDateTime) row[5]).toLocalDate()  // convertir a LocalDate
+                        (LocalDateTime) row[4],
+                        (LocalDateTime) row[5]
                 )).toList();
-
-        // Contar totales
-        int totalTramites = queryRepository.countTramitesBusqueda(queryTrimmed);
-        int totalRegistros = queryRepository.countRegistrosBusqueda(queryTrimmed);
 
         return new BusquedaGlobalDTO(tramites, registros, totalTramites, totalRegistros);
     }
+
+
 
 
 }

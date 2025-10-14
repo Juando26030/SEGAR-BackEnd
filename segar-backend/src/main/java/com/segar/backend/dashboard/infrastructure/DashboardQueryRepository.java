@@ -159,5 +159,14 @@ public class DashboardQueryRepository {
                         "lower(p.nombre) like lower(concat('%', :query, '%'))"
         ).setParameter("query", query).getSingleResult()).intValue();
     }
+    public List<Object[]> registrosSanitariosRecientes(int limit) {
+        return em.createQuery(
+                "select r.id, r.numeroRegistro, p.nombre, r.estado, r.fechaExpedicion, r.fechaVencimiento " +
+                        "from RegistroSanitario r join Producto p on r.productoId = p.id " +
+                        "order by r.numeroRegistro asc",
+                Object[].class
+        ).setMaxResults(limit).getResultList();
+    }
+
 
 }

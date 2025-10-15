@@ -72,6 +72,20 @@ public class DocumentTemplateServiceImpl {
                 .collect(Collectors.toList());
     }
 
+    /**
+     * Obtiene todas las categorías únicas de documentos
+     */
+    public List<String> getAllCategories() {
+        log.info("Obteniendo todas las categorías de documentos");
+        return documentTemplateRepository.findByActiveTrue()
+                .stream()
+                .map(DocumentTemplate::getCategory)
+                .filter(category -> category != null && !category.trim().isEmpty())
+                .distinct()
+                .sorted()
+                .collect(Collectors.toList());
+    }
+
      
     @Transactional
     public DocumentTemplateDTO createTemplate(DocumentTemplateDTO templateDTO) {
@@ -191,6 +205,8 @@ public class DocumentTemplateServiceImpl {
                 .active(template.getActive())
                 .required(template.getRequired())
                 .displayOrder(template.getDisplayOrder())
+                .orden(template.getOrden() != null ? template.getOrden() : template.getDisplayOrder())
+                .category(template.getCategory())
                 .categoriaRiesgo(template.getCategoriaRiesgo())
                 .createdAt(template.getCreatedAt())
                 .updatedAt(template.getUpdatedAt())
@@ -226,6 +242,8 @@ public class DocumentTemplateServiceImpl {
         entity.setActive(dto.getActive());
         entity.setRequired(dto.getRequired());
         entity.setDisplayOrder(dto.getDisplayOrder());
+        entity.setOrden(dto.getOrden() != null ? dto.getOrden() : dto.getDisplayOrder());
+        entity.setCategory(dto.getCategory());
         entity.setCategoriaRiesgo(dto.getCategoriaRiesgo());
     }
 

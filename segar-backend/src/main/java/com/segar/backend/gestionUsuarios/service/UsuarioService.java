@@ -34,8 +34,12 @@ public class UsuarioService {
         usuario.setFechaRegistro(LocalDateTime.now());
         usuario.setActivo(true);
 
-        return usuarioRepository.save(usuario);
+        Usuario savedUsuario = usuarioRepository.save(usuario);
+        System.out.println("✅ Usuario guardado en H2 con ID: " + savedUsuario.getId());
+
+        return savedUsuario;
     }
+
 
     public Usuario findByKeycloakId(String keycloakId) {
         return usuarioRepository.findByKeycloakId(keycloakId)

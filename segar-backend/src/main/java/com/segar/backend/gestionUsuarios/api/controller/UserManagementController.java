@@ -40,7 +40,7 @@ public class UserManagementController {
                 request.getLastName()
         );
 
-        return ResponseEntity.ok(mapToResponse(usuario));
+        return ResponseEntity.ok(mapUsuarioToResponse(usuario));
     }
 
     @PreAuthorize("hasRole('ADMIN')")
@@ -49,14 +49,13 @@ public class UserManagementController {
         List<UserRepresentation> kcUsers = keycloakUserService.getAllUsers();
 
         List<UserResponse> responses = kcUsers.stream()
-                .map(this::mapToResponse)
+                .map(this::mapKeycloakUserToResponse)
                 .collect(Collectors.toList());
 
         return ResponseEntity.ok(responses);
     }
 
-    private UserResponse mapToResponse(Usuario usuario) {
-        // Obtener datos completos de Keycloak
+    private UserResponse mapUsuarioToResponse(Usuario usuario) {
         UserRepresentation kcUser = keycloakUserService.getUserById(usuario.getKeycloakId());
 
         return UserResponse.builder()
@@ -71,7 +70,7 @@ public class UserManagementController {
                 .build();
     }
 
-    private UserResponse mapToResponse(UserRepresentation kcUser) {
+    private UserResponse mapKeycloakUserToResponse(UserRepresentation kcUser) {
         return UserResponse.builder()
                 .keycloakId(kcUser.getId())
                 .username(kcUser.getUsername())
@@ -81,4 +80,5 @@ public class UserManagementController {
                 .enabled(kcUser.isEnabled())
                 .build();
     }
+
 }

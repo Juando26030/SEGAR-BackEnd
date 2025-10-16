@@ -60,6 +60,16 @@ public class DatabaseInit implements ApplicationRunner{
     @Override
     public void run(ApplicationArguments args) throws Exception {
 
+        // Verificar múltiples tablas para asegurar que no hay datos
+        if (empresaRepository.count() > 0 ||
+                tramiteRepo.count() > 0 ||
+                productoRepository.count() > 0) {
+            System.out.println("⚠️ Base de datos ya inicializada. Omitiendo carga de datos.");
+            return;
+        }
+
+        System.out.println("🔄 Primera ejecución detectada. Cargando datos iniciales...");
+
         // Crear empresa
         Empresa empresa = Empresa.builder()
                 .razonSocial("Lácteos Premium S.A.S.")

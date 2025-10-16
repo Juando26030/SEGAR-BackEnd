@@ -50,56 +50,7 @@ public class RadicacionServiceImpl {
     private final Map<String, DocumentValidationResponseEvent> validationResponses = new ConcurrentHashMap<>();
 
 
-    public SolicitudRadicadaResponseDTO radicarSolicitud(RadicacionSolicitudDTO radicacionDTO) {
-        // Validaciones previas
-        validarEmpresaRegistrada(radicacionDTO.getEmpresaId());
-        validarDocumentosObligatorios(radicacionDTO.getDocumentosId());
-        validarPagoAprobado(radicacionDTO.getPagoId());
-        validarSolicitudNoExistente(radicacionDTO);
-
-        // Obtener entidades relacionadas
-        Producto producto = productoRepository.findById(radicacionDTO.getProductoId())
-            .orElseThrow(() -> new RuntimeException("Producto no encontrado"));
-
-        Pago pago = pagoRepository.findById(radicacionDTO.getPagoId())
-            .orElseThrow(() -> new PagoInvalidoException("Pago no encontrado"));
-
-
-        // Crear y configurar la solicitud SIN documentos directamente
-        Solicitud solicitud = Solicitud.builder()
-            .empresaId(radicacionDTO.getEmpresaId())
-            .producto(producto)
-            .tipoTramite(radicacionDTO.getTipoTramite())
-            .estado(EstadoSolicitud.RADICADA)
-            .numeroRadicado(generarNumeroRadicado())
-            .fechaRadicacion(LocalDateTime.now())
-            .observaciones(radicacionDTO.getObservaciones())
-            .pago(pago)
-            .documentosIds(radicacionDTO.getDocumentosId()) // Guardar solo IDs
-            .build();
-
-        // Guardar en base de datos
-        Solicitud solicitudGuardada = solicitudRepository.save(solicitud);
-
-        // Publicar evento para notificar que documentos están asociados a solicitud
-        eventPublisher.publishEvent(new DocumentosSolicitudAsociadosEvent(
-                solicitudGuardada.getId(),
-                radicacionDTO.getDocumentosId()
-        ));
-
-        // Crear respuesta
-        return SolicitudRadicadaResponseDTO.builder()
-            .numeroRadicado(solicitudGuardada.getNumeroRadicado())
-            .estado(solicitudGuardada.getEstado().name())
-            .fechaRadicacion(solicitudGuardada.getFechaRadicacion())
-            .empresaId(solicitudGuardada.getEmpresaId())
-            .productoId(solicitudGuardada.getProducto().getId())
-            .tipoTramite(solicitudGuardada.getTipoTramite().name())
-            .mensaje("Solicitud radicada exitosamente ante INVIMA")
-            .build();
-    }
-
-
+    
     public List<Solicitud> obtenerSolicitudesRadicadas(Long empresaId) {
         return solicitudRepository.findByEmpresaIdAndEstado(empresaId, EstadoSolicitud.RADICADA);
     }
@@ -239,23 +190,4 @@ public class RadicacionServiceImpl {
         }
     }
 
-    private void validarSolicitudNoExistente(RadicacionSolicitudDTO radicacionDTO) {
-        Optional<Solicitud> solicitudExistente = solicitudRepository
-            .findByEmpresaIdAndProductoIdAndTipoTramite(
-                radicacionDTO.getEmpresaId(),
-                radicacionDTO.getProductoId(),
-                radicacionDTO.getTipoTramite()
-            );
-
-        if (solicitudExistente.isPresent()) {
-            Solicitud existente = solicitudExistente.get();
-            if (existente.getEstado() == EstadoSolicitud.RADICADA || 
-                existente.getEstado() == EstadoSolicitud.APROBADA) {
-                throw new SolicitudDuplicadaException(
-                    "Ya existe una solicitud " + existente.getEstado().name() +
-                    " para este producto y tipo de trámite"
-                );
-            }
-        }
-    }
 }

@@ -5,12 +5,19 @@ import java.util.List;
 import com.segar.backend.shared.domain.Producto;
 import com.segar.backend.shared.service.ProductoServiceImpl;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.PutMapping;
 
 
-@RequestMapping("/producto")
+
+
+@RequestMapping("api/producto")
 @RestController
 public class ProductoController {
 
@@ -26,5 +33,26 @@ public class ProductoController {
             System.out.println("Product: " + producto.getNombre());
         }
         return productos;
+    }
+
+    @PostMapping("/create")
+    public Producto createProducto(@RequestBody Producto producto) {
+        productoService.saveProducto(producto);
+        return producto;
+    }
+    
+    @DeleteMapping("/{id}")
+    public void deleteProducto(@PathVariable Long id) {
+        productoService.deleteProducto(id);
+    }
+    
+    @GetMapping("/{id}")
+    public Producto getProductoById(@PathVariable Long id) {
+        return productoService.getProductoById(id);
+    }
+
+    @PutMapping("/{id}")
+    public Producto updateProducto(@PathVariable String id, @RequestBody Producto producto) {
+        return productoService.updateProducto(Long.parseLong(id), producto);
     }
 }

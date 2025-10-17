@@ -1,7 +1,6 @@
 package com.segar.backend.documentos.api;
 
 import com.segar.backend.documentos.api.dto.*;
-import com.segar.backend.documentos.domain.*;
 import com.segar.backend.documentos.service.DocumentTemplateServiceImpl;
 import com.segar.backend.shared.domain.CategoriaRiesgo;
 import com.segar.backend.shared.domain.TipoTramite;
@@ -145,6 +144,25 @@ public class DocumentTemplateController {
             return ResponseEntity.ok(templates);
         } catch (Exception e) {
             log.error("Error obteniendo plantillas obligatorias por trámite: {}", tipoTramite, e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
+        }
+    }
+
+    @Operation(summary = "Obtener categorías únicas de documentos",
+               description = "Retorna lista de todas las categorías de documentos disponibles")
+    @ApiResponses(value = {
+        @ApiResponse(responseCode = "200", description = "Categorías obtenidas exitosamente"),
+        @ApiResponse(responseCode = "500", description = "Error interno del servidor")
+    })
+    @GetMapping("/categories")
+    public ResponseEntity<List<String>> getCategories() {
+        log.info("GET /api/document-templates/categories - Obteniendo categorías de documentos");
+
+        try {
+            List<String> categories = documentTemplateService.getAllCategories();
+            return ResponseEntity.ok(categories);
+        } catch (Exception e) {
+            log.error("Error obteniendo categorías de documentos", e);
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
         }
     }

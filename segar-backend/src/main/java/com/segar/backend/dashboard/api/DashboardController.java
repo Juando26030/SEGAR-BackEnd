@@ -65,5 +65,13 @@ public class DashboardController {
         return ResponseEntity.ok(dashboardService.getTramiteDetalle(id));
     }
 
+    @GetMapping("/busqueda")
+    public ResponseEntity<BusquedaGlobalDTO> busquedaGlobal(
+            @RequestParam(name = "q", required = true) String query,
+            @RequestParam(name = "limitTramites", required = false, defaultValue = "10") int limitTramites,
+            @RequestParam(name = "limitRegistros", required = false, defaultValue = "10") int limitRegistros
+    ) {
+        return ResponseEntity.ok(dashboardService.busquedaGlobal(query, limitTramites, limitRegistros));
+    }
 
 }

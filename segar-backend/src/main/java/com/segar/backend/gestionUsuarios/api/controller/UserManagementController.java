@@ -37,7 +37,18 @@ public class UserManagementController {
                 request.getEmail(),
                 request.getPassword(),
                 request.getFirstName(),
-                request.getLastName()
+                request.getLastName(),
+                request.getIdType(),
+                request.getIdNumber(),
+                request.getBirthDate(),
+                request.getGender(),
+                request.getPhone(),
+                request.getAltPhone(),
+                request.getAddress(),
+                request.getCity(),
+                request.getPostalCode(),
+                request.getEmployeeId(),
+                request.getRole()
         );
 
         return ResponseEntity.ok(mapUsuarioToResponse(usuario));
@@ -55,6 +66,30 @@ public class UserManagementController {
         return ResponseEntity.ok(responses);
     }
 
+    @GetMapping("/local")
+    public ResponseEntity<List<Usuario>> getAllUsersLocal() {
+        List<Usuario> usuarios = usuarioService.getAllUsuariosLocales();
+        return ResponseEntity.ok(usuarios);
+    }
+
+    @GetMapping("/{id}")
+    public ResponseEntity<UserResponse> getUserById(@PathVariable Long id) {
+        Usuario usuario = usuarioService.findById(id);
+        return ResponseEntity.ok(mapUsuarioToResponse(usuario));
+    }
+
+    @GetMapping("/username/{username}")
+    public ResponseEntity<UserResponse> getUserByUsername(@PathVariable String username) {
+        Usuario usuario = usuarioService.findByUsername(username);
+        return ResponseEntity.ok(mapUsuarioToResponse(usuario));
+    }
+
+    @GetMapping("/keycloak/{keycloakId}")
+    public ResponseEntity<UserResponse> getUserByKeycloakId(@PathVariable String keycloakId) {
+        Usuario usuario = usuarioService.findByKeycloakId(keycloakId);
+        return ResponseEntity.ok(mapUsuarioToResponse(usuario));
+    }
+
     private UserResponse mapUsuarioToResponse(Usuario usuario) {
         UserRepresentation kcUser = keycloakUserService.getUserById(usuario.getKeycloakId());
 
@@ -63,10 +98,23 @@ public class UserManagementController {
                 .keycloakId(usuario.getKeycloakId())
                 .username(usuario.getUsername())
                 .email(usuario.getEmail())
-                .firstName(kcUser.getFirstName())
-                .lastName(kcUser.getLastName())
+                .firstName(usuario.getFirstName())
+                .lastName(usuario.getLastName())
+                .fullName(usuario.getFullName())
+                .idType(usuario.getIdType())
+                .idNumber(usuario.getIdNumber())
+                .birthDate(usuario.getBirthDate())
+                .gender(usuario.getGender())
+                .phone(usuario.getPhone())
+                .altPhone(usuario.getAltPhone())
+                .address(usuario.getAddress())
+                .city(usuario.getCity())
+                .postalCode(usuario.getPostalCode())
+                .employeeId(usuario.getEmployeeId())
+                .role(usuario.getRole())
                 .enabled(kcUser.isEnabled())
                 .fechaRegistro(usuario.getFechaRegistro())
+                .activo(usuario.getActivo())
                 .build();
     }
 

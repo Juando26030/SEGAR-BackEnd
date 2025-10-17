@@ -24,12 +24,14 @@ public class Producto {
     private String especificaciones;
     private String referencia;
     private String fabricante;
+    private Long empresaId;
 
-    public Producto(String nombre, String descripcion, String especificaciones, String referencia, String fabricante) {
+    public Producto(String nombre, String descripcion, String especificaciones, String referencia, String fabricante, Long empresaId) {
         this.nombre = nombre;
         this.descripcion = descripcion;
         this.especificaciones = especificaciones;
         this.referencia = referencia;
         this.fabricante = fabricante;
+        this.empresaId = empresaId;
     }
 }

@@ -10,6 +10,8 @@ import com.segar.backend.tramites.infrastructure.*;
 import com.segar.backend.shared.infrastructure.*;
 import com.segar.backend.calendario.infrastructure.EventoRepository;
 import com.segar.backend.calendario.domain.*;
+import com.segar.backend.gestionUsuarios.domain.Usuario;
+import com.segar.backend.gestionUsuarios.infrastructure.repository.UsuarioRepository;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.ApplicationArguments;
@@ -57,8 +59,70 @@ public class DatabaseInit implements ApplicationRunner{
     @Autowired
     private EventoRepository eventoCalendarioRepository;
 
+    @Autowired
+    private UsuarioRepository usuarioRepository;
+
     @Override
     public void run(ApplicationArguments args) throws Exception {
+
+        // Verificar múltiples tablas para asegurar que no hay datos
+        if (empresaRepository.count() > 0 ||
+                tramiteRepo.count() > 0 ||
+                productoRepository.count() > 0 ||
+                usuarioRepository.count() > 0) {
+            System.out.println("⚠️ Base de datos ya inicializada. Omitiendo carga de datos.");
+            return;
+        }
+
+        System.out.println("🔄 Primera ejecución detectada. Cargando datos iniciales...");
+
+        // ========== CREAR USUARIOS INICIALES ==========
+        System.out.println("👤 Creando usuarios iniciales...");
+
+        // Usuario Administrador
+        Usuario admin = new Usuario();
+        admin.setKeycloakId("2ee843f1-fdf6-4523-81fa-864c4ea02939");
+        admin.setUsername("admin.segar");
+        admin.setEmail("admin@segar.gov.co");
+        admin.setFirstName("Administrador");
+        admin.setLastName("SEGAR");
+        admin.setIdType("CC");
+        admin.setIdNumber("1012345678");
+        admin.setBirthDate(LocalDate.of(1985, 3, 15));
+        admin.setGender("Masculino");
+        admin.setPhone("+57 310 123 4567");
+        admin.setAltPhone("+57 601 234 5678");
+        admin.setAddress("Carrera 7 # 32-16, Edificio Central");
+        admin.setCity("Bogotá D.C.");
+        admin.setPostalCode("110111");
+        admin.setEmployeeId("ADM-001");
+        admin.setRole("Administrador");
+        admin.setActivo(true);
+        admin.setFechaRegistro(LocalDateTime.now());
+
+        // Usuario Empleado
+        Usuario empleado = new Usuario();
+        empleado.setKeycloakId("8f275514-e104-45ff-919c-db228927453b");
+        empleado.setUsername("empleado.segar");
+        empleado.setEmail("empleado@segar.gov.co");
+        empleado.setFirstName("Empleado");
+        empleado.setLastName("SEGAR");
+        empleado.setIdType("CC");
+        empleado.setIdNumber("1087654321");
+        empleado.setBirthDate(LocalDate.of(1990, 7, 20));
+        empleado.setGender("Femenino");
+        empleado.setPhone("+57 315 987 6543");
+        empleado.setAltPhone("+57 601 987 6543");
+        empleado.setAddress("Calle 26 # 51-53, Torre 3, Piso 5");
+        empleado.setCity("Bogotá D.C.");
+        empleado.setPostalCode("110221");
+        empleado.setEmployeeId("EMP-002");
+        empleado.setRole("Empleado");
+        empleado.setActivo(true);
+        empleado.setFechaRegistro(LocalDateTime.now());
+
+        usuarioRepository.saveAll(List.of(admin, empleado));
+        System.out.println("✅ Usuarios iniciales creados: admin.segar y empleado.segar");
 
         // Crear empresa
         Empresa empresa = Empresa.builder()
@@ -357,7 +421,7 @@ public class DatabaseInit implements ApplicationRunner{
         for (Tramite tramite : tramites) {
             List<Notificacion> notificaciones = List.of(
                     crearNotificacion(tramite, TipoNotificacion.INFO, "Estado actualizado", "Su trámite ha cambiado de estado", false),
-                    crearNotificacion(tramite, TipoNotificacion.INFO, "Trámite en proceso", "Su trámite está siendo procesado", true)
+                    crearNotificacion(tramite, TipoNotificacion.INFO, "Trámite in proceso", "Su trámite está siendo procesado", true)
             );
             repo.saveAll(notificaciones);
         }

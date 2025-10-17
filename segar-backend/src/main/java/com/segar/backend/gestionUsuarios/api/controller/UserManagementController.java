@@ -14,6 +14,8 @@ import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import java.util.Map;
+import java.util.Optional;
 import java.util.stream.Collectors;
 
 @RestController
@@ -102,6 +104,16 @@ public class UserManagementController {
     }
 
     @PreAuthorize("hasRole('ADMIN')")
+    @PostMapping("/{id}/habilitar-login")
+    public ResponseEntity<Map<String, String>> habilitarLogin(@PathVariable Long id) {
+        usuarioService.habilitarLoginUsuario(id);
+        return ResponseEntity.ok(Map.of(
+                "mensaje", "Usuario habilitado exitosamente para hacer login",
+                "descripcion", "Se han limpiado todas las acciones requeridas en Keycloak"
+        ));
+    }
+
+    @PreAuthorize("hasRole('ADMIN')")
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> deleteUser(@PathVariable Long id) {
         usuarioService.deleteUsuario(id);
@@ -145,11 +157,20 @@ public class UserManagementController {
     }
 
     private UserResponse mapUsuarioToResponse(Usuario usuario) {
-        UserRepresentation kcUser = keycloakUserService.getUserById(usuario.getKeycloakId());
+        // Consultar DIRECTAMENTE a Keycloak por username (fuente de verdad)
+        Optional<UserRepresentation> kcUserOpt = keycloakUserService.getUserByUsername(usuario.getUsername());
+
+        if (kcUserOpt.isEmpty()) {
+            throw new RuntimeException("El usuario '" + usuario.getUsername() +
+                    "' no existe en Keycloak. Por favor, elimínelo y vuélvalo a crear.");
+        }
+
+        UserRepresentation kcUser = kcUserOpt.get();
+        String keycloakIdReal = kcUser.getId();
 
         return UserResponse.builder()
                 .id(usuario.getId())
-                .keycloakId(usuario.getKeycloakId())
+                .keycloakId(keycloakIdReal)
                 .username(usuario.getUsername())
                 .email(usuario.getEmail())
                 .firstName(usuario.getFirstName())
@@ -173,12 +194,11 @@ public class UserManagementController {
     }
 
     private UserResponse mapUsuarioToResponseSafe(Usuario usuario) {
-        // Intentar obtener datos de Keycloak de forma segura
-        var kcUserOpt = keycloakUserService.getUserByIdSafe(usuario.getKeycloakId());
+        // Consultar DIRECTAMENTE a Keycloak por username (fuente de verdad)
+        Optional<UserRepresentation> kcUserOpt = keycloakUserService.getUserByUsername(usuario.getUsername());
 
         UserResponse.UserResponseBuilder builder = UserResponse.builder()
                 .id(usuario.getId())
-                .keycloakId(usuario.getKeycloakId())
                 .username(usuario.getUsername())
                 .email(usuario.getEmail())
                 .firstName(usuario.getFirstName())
@@ -198,10 +218,14 @@ public class UserManagementController {
                 .fechaRegistro(usuario.getFechaRegistro())
                 .activo(usuario.getActivo());
 
-        // Si Keycloak responde, usar su estado enabled, si no, usar el local activo
+        // Si Keycloak responde, usar sus datos como fuente de verdad
         if (kcUserOpt.isPresent()) {
-            builder.enabled(kcUserOpt.get().isEnabled());
+            UserRepresentation kcUser = kcUserOpt.get();
+            builder.keycloakId(kcUser.getId());
+            builder.enabled(kcUser.isEnabled());
         } else {
+            // Si no existe en Keycloak, usar datos locales
+            builder.keycloakId(usuario.getKeycloakId());
             builder.enabled(usuario.getActivo());
         }
 

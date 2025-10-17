@@ -1,6 +1,8 @@
 package com.segar.backend.gestionUsuarios.api.controller;
 
 import com.segar.backend.gestionUsuarios.api.dto.CreateUserRequest;
+import com.segar.backend.gestionUsuarios.api.dto.UpdateUserRequest;
+import com.segar.backend.gestionUsuarios.api.dto.UpdatePasswordRequest;
 import com.segar.backend.gestionUsuarios.api.dto.UserResponse;
 import com.segar.backend.gestionUsuarios.domain.Usuario;
 import com.segar.backend.gestionUsuarios.service.KeycloakUserService;
@@ -55,6 +57,58 @@ public class UserManagementController {
     }
 
     @PreAuthorize("hasRole('ADMIN')")
+    @PutMapping("/{id}")
+    public ResponseEntity<UserResponse> updateUser(
+            @PathVariable Long id,
+            @Valid @RequestBody UpdateUserRequest request) {
+
+        Usuario usuario = usuarioService.updateUsuario(
+                id,
+                request.getEmail(),
+                request.getFirstName(),
+                request.getLastName(),
+                request.getIdType(),
+                request.getIdNumber(),
+                request.getBirthDate(),
+                request.getGender(),
+                request.getPhone(),
+                request.getAltPhone(),
+                request.getAddress(),
+                request.getCity(),
+                request.getPostalCode(),
+                request.getEmployeeId(),
+                request.getRole(),
+                request.getEnabled()
+        );
+
+        return ResponseEntity.ok(mapUsuarioToResponse(usuario));
+    }
+
+    @PreAuthorize("hasRole('ADMIN')")
+    @PatchMapping("/{id}/password")
+    public ResponseEntity<Void> updatePassword(
+            @PathVariable Long id,
+            @Valid @RequestBody UpdatePasswordRequest request) {
+
+        usuarioService.updatePassword(id, request.getNewPassword(), request.getTemporary());
+        return ResponseEntity.ok().build();
+    }
+
+    @PreAuthorize("hasRole('ADMIN')")
+    @PatchMapping("/{id}/toggle-active")
+    public ResponseEntity<UserResponse> toggleUserActive(@PathVariable Long id) {
+        Usuario usuario = usuarioService.toggleUsuarioActivo(id);
+        return ResponseEntity.ok(mapUsuarioToResponse(usuario));
+    }
+
+    @PreAuthorize("hasRole('ADMIN')")
+    @DeleteMapping("/{id}")
+    public ResponseEntity<Void> deleteUser(@PathVariable Long id) {
+        usuarioService.deleteUsuario(id);
+        return ResponseEntity.noContent().build();
+    }
+
+    @PreAuthorize("hasRole('ADMIN')")
     @GetMapping
     public ResponseEntity<List<UserResponse>> getAllUsers() {
         List<UserRepresentation> kcUsers = keycloakUserService.getAllUsers();
@@ -81,7 +135,7 @@ public class UserManagementController {
     @GetMapping("/username/{username}")
     public ResponseEntity<UserResponse> getUserByUsername(@PathVariable String username) {
         Usuario usuario = usuarioService.findByUsername(username);
-        return ResponseEntity.ok(mapUsuarioToResponse(usuario));
+        return ResponseEntity.ok(mapUsuarioToResponseSafe(usuario));
     }
 
     @GetMapping("/keycloak/{keycloakId}")
@@ -116,6 +170,42 @@ public class UserManagementController {
                 .fechaRegistro(usuario.getFechaRegistro())
                 .activo(usuario.getActivo())
                 .build();
+    }
+
+    private UserResponse mapUsuarioToResponseSafe(Usuario usuario) {
+        // Intentar obtener datos de Keycloak de forma segura
+        var kcUserOpt = keycloakUserService.getUserByIdSafe(usuario.getKeycloakId());
+
+        UserResponse.UserResponseBuilder builder = UserResponse.builder()
+                .id(usuario.getId())
+                .keycloakId(usuario.getKeycloakId())
+                .username(usuario.getUsername())
+                .email(usuario.getEmail())
+                .firstName(usuario.getFirstName())
+                .lastName(usuario.getLastName())
+                .fullName(usuario.getFullName())
+                .idType(usuario.getIdType())
+                .idNumber(usuario.getIdNumber())
+                .birthDate(usuario.getBirthDate())
+                .gender(usuario.getGender())
+                .phone(usuario.getPhone())
+                .altPhone(usuario.getAltPhone())
+                .address(usuario.getAddress())
+                .city(usuario.getCity())
+                .postalCode(usuario.getPostalCode())
+                .employeeId(usuario.getEmployeeId())
+                .role(usuario.getRole())
+                .fechaRegistro(usuario.getFechaRegistro())
+                .activo(usuario.getActivo());
+
+        // Si Keycloak responde, usar su estado enabled, si no, usar el local activo
+        if (kcUserOpt.isPresent()) {
+            builder.enabled(kcUserOpt.get().isEnabled());
+        } else {
+            builder.enabled(usuario.getActivo());
+        }
+
+        return builder.build();
     }
 
     private UserResponse mapKeycloakUserToResponse(UserRepresentation kcUser) {

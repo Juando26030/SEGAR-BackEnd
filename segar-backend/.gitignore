@@ -32,3 +32,4 @@ build/
 ### VS Code ###
 .vscode/
 
+gcp-service-account.json

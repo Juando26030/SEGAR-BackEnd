@@ -4,12 +4,15 @@ package com.segar.backend.tramites.service;
 
 
 import com.segar.backend.shared.domain.EstadoTramite;
+import com.segar.backend.shared.domain.Producto;
 import com.segar.backend.shared.domain.EstadoRequerimiento;
 import com.segar.backend.shared.domain.TipoNotificacion;
+import com.segar.backend.shared.infrastructure.ProductoRepository;
 import com.segar.backend.shared.infrastructure.TramiteRepository;
 import com.segar.backend.tramites.domain.*;
 import com.segar.backend.tramites.api.dto.NotificationDTO;
 import com.segar.backend.tramites.api.dto.NotificationSettingsDTO;
+import com.segar.backend.tramites.api.dto.RadicacionSolicitudDTO;
 import com.segar.backend.shared.domain.Tramite;
 import com.segar.backend.tramites.api.dto.RequirementDTO;
 import com.segar.backend.tramites.api.dto.TimelineEventDTO;
@@ -23,6 +26,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 import org.springframework.web.server.ResponseStatusException;
+
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
@@ -48,6 +52,9 @@ public class TramiteServiceImpl{
     private NotificacionRepository notifRepo;
 
     @Autowired
+    private ProductoRepository productoRepo;
+
+    @Autowired
     private PreferenciasNotificacionRepository prefRepo;
 
     @Autowired
@@ -59,7 +66,7 @@ public class TramiteServiceImpl{
         long days = ChronoUnit.DAYS.between(t.getSubmissionDate(), LocalDate.now());
         return new TrackingDTO(
                 t.getRadicadoNumber(), t.getSubmissionDate(), t.getProcedureType(),
-                t.getProductName(), toFrontStatus(t.getCurrentStatus()), days
+                t.getProduct().getNombre(), toFrontStatus(t.getCurrentStatus()), days
         );
     }
 
@@ -189,5 +196,42 @@ public class TramiteServiceImpl{
                 },
                 r.getDate() != null ? r.getDate().format(DateTimeFormatter.ofPattern("d 'de' MMMM 'de' yyyy", new Locale("es","CO"))) : ""
         );
+    }
+
+    public List<Tramite> getAllTramites() {
+        return tramiteRepo.findAll();
+    }
+
+    public Tramite createTramite(RadicacionSolicitudDTO solicitudTramite) {
+        Tramite tramite = new Tramite();
+        tramite.setRadicadoNumber(solicitudTramite.getRadicadoNumber());
+        tramite.setSubmissionDate(LocalDate.now());
+        tramite.setProcedureType(solicitudTramite.getProcedureType());
+        Producto p = productoRepo.findById(solicitudTramite.getProductoId()).orElseThrow();
+        tramite.setProduct(p);
+        tramite.setCurrentStatus(EstadoTramite.RADICADO);
+        tramite.setLastUpdate(LocalDateTime.now());
+        List<EventoTramite> eventos = new ArrayList<>(List.of(
+                crearEvento(tramite, 1, "Solicitud Radicada", "Documentos recibidos y radicado asignado", tramite.getSubmissionDate(), true, true),
+                crearEvento(tramite, 2, "Verificación Documental", "Revisión inicial completada - Se requiere información adicional", tramite.getSubmissionDate().plusDays(3), false, false),
+                crearEvento(tramite, 3, "Requiere Información", "Esperando documentos adicionales del solicitante", tramite.getSubmissionDate().plusDays(5), false, false),
+                crearEvento(tramite, 4, "Evaluación Técnica", "Pendiente análisis técnico", null, false, false)
+        ));
+        tramite.setEventos(eventos);
+        tramiteRepo.save(tramite);
+        eventoRepo.saveAll(eventos);
+        return tramiteRepo.save(tramite);
+    }
+
+    private EventoTramite crearEvento(Tramite tramite, int orden, String title, String description, LocalDate date, boolean completed, boolean current) {
+        EventoTramite evento = new EventoTramite();
+        evento.setTitle(title);
+        evento.setTramite(tramite);
+        evento.setDescription(description);
+        evento.setDate(date);
+        evento.setCompleted(completed);
+        evento.setCurrentEvent(current);
+        evento.setOrden(orden);
+        return evento;
     }
 }

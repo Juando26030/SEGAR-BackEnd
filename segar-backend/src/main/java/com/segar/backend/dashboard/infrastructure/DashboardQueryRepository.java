@@ -68,12 +68,19 @@ public class DashboardQueryRepository {
     }
 
     public List<Object[]> tramitesRecientes(int limit) {
-        return em.createQuery(
-                "select t.id, t.radicadoNumber, t.productName, t.procedureType, t.currentStatus, t.lastUpdate " +
-                        "from Tramite t order by t.lastUpdate desc",
-                Object[].class
-        ).setMaxResults(limit).getResultList();
-    }
+    return em.createQuery(
+        "select t.id, t.radicadoNumber, p.nombre, t.procedureType, t.currentStatus, t.lastUpdate " +
+        "from Tramite t join t.product p " +
+        "order by t.lastUpdate desc",
+        Object[].class
+    )
+    .setMaxResults(limit)
+    .getResultList();
+}
+
+
+
+
 
     public Object[] getTramiteCompleto(Long tramiteId) {
         return em.createQuery(

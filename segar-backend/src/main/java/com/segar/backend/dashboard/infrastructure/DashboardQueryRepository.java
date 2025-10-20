@@ -122,5 +122,58 @@ public class DashboardQueryRepository {
         ).setParameter("tramiteId", tramiteId).getResultList();
     }
 
+    //Busqueda global
+
+    public List<Object[]> buscarTramites(String query, int limit) {
+        return em.createQuery(
+                        "select t.id, t.radicadoNumber, t.productName, t.procedureType, t.currentStatus, t.submissionDate, t.lastUpdate " +
+                                "from Tramite t where " +
+                                "lower(t.radicadoNumber) like lower(concat('%', :query, '%')) or " +
+                                "lower(t.productName) like lower(concat('%', :query, '%')) or " +
+                                "lower(t.procedureType) like lower(concat('%', :query, '%')) " +
+                                "order by t.lastUpdate desc",
+                        Object[].class
+                ).setParameter("query", query)
+                .setMaxResults(limit)
+                .getResultList();
+    }
+
+    public List<Object[]> buscarRegistrosSanitarios(String query, int limit) {
+        return em.createQuery(
+                        "select r.id, r.numeroRegistro, p.nombre, r.estado, r.fechaExpedicion, r.fechaVencimiento " +
+                                "from RegistroSanitario r join Producto p on r.productoId = p.id where " +
+                                "lower(r.numeroRegistro) like lower(concat('%', :query, '%')) or " +
+                                "lower(p.nombre) like lower(concat('%', :query, '%')) " +
+                                "order by r.fechaExpedicion desc",
+                        Object[].class
+                ).setParameter("query", query)
+                .setMaxResults(limit)
+                .getResultList();
+    }
+    public int countTramitesBusqueda(String query) {
+        return ((Number) em.createQuery(
+                "select count(t) from Tramite t where " +
+                        "lower(t.radicadoNumber) like lower(concat('%', :query, '%')) or " +
+                        "lower(t.productName) like lower(concat('%', :query, '%')) or " +
+                        "lower(t.procedureType) like lower(concat('%', :query, '%'))"
+        ).setParameter("query", query).getSingleResult()).intValue();
+    }
+
+    public int countRegistrosBusqueda(String query) {
+        return ((Number) em.createQuery(
+                "select count(r) from RegistroSanitario r join Producto p on r.productoId = p.id where " +
+                        "lower(r.numeroRegistro) like lower(concat('%', :query, '%')) or " +
+                        "lower(p.nombre) like lower(concat('%', :query, '%'))"
+        ).setParameter("query", query).getSingleResult()).intValue();
+    }
+    public List<Object[]> registrosSanitariosRecientes(int limit) {
+        return em.createQuery(
+                "select r.id, r.numeroRegistro, p.nombre, r.estado, r.fechaExpedicion, r.fechaVencimiento " +
+                        "from RegistroSanitario r join Producto p on r.productoId = p.id " +
+                        "order by r.numeroRegistro asc",
+                Object[].class
+        ).setMaxResults(limit).getResultList();
+    }
+
 
 }

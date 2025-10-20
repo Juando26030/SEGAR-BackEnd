@@ -57,8 +57,21 @@ public interface DocumentTemplateRepository extends JpaRepository<DocumentTempla
      */
     @Query("SELECT dt FROM DocumentTemplate dt WHERE dt.active = true " +
            "AND :tipoTramite MEMBER OF dt.appliesToTramiteTypes " +
-           "ORDER BY dt.displayOrder ASC, dt.name ASC")
+           "ORDER BY COALESCE(dt.orden, dt.displayOrder, 999) ASC, dt.name ASC")
     List<DocumentTemplate> findByTipoTramiteOrderedByDisplayOrder(@Param("tipoTramite") TipoTramite tipoTramite);
+
+    /**
+     * Busca plantillas por tipo de trámite y categoría de riesgo ordenadas
+     */
+    @Query("SELECT dt FROM DocumentTemplate dt WHERE dt.active = true " +
+           "AND :tipoTramite MEMBER OF dt.appliesToTramiteTypes " +
+           "AND (dt.categoriaRiesgo = :categoriaRiesgo " +
+           "OR dt.categoriaRiesgo = com.segar.backend.shared.domain.CategoriaRiesgo.I " +
+           "OR dt.categoriaRiesgo IS NULL) " +
+           "ORDER BY COALESCE(dt.orden, dt.displayOrder, 999) ASC, dt.name ASC")
+    List<DocumentTemplate> findByTipoTramiteAndCategoriaRiesgoOrdered(
+        @Param("tipoTramite") TipoTramite tipoTramite,
+        @Param("categoriaRiesgo") CategoriaRiesgo categoriaRiesgo);
 
     /**
      * Verifica si existe una plantilla con el mismo código (para validar duplicados)

@@ -98,6 +98,18 @@ public class DocumentTemplate {
     private Integer displayOrder;
 
     /**
+     * Orden de presentación (alias para frontend)
+     */
+    @Column(name = "orden")
+    private Integer orden;
+
+    /**
+     * Categoría del documento (basico, analisis, certificacion, estudios, otros)
+     */
+    @Column(name = "category", length = 50)
+    private String category;
+
+    /**
      * Categoría de riesgo del producto a la que aplica
      */
     @Enumerated(EnumType.STRING)

@@ -57,6 +57,10 @@ public class TramiteServiceImpl{
     @Autowired
     private PreferenciasNotificacionRepository prefRepo;
 
+    @Autowired
+    private RegistroSanitarioRepository registroSanitarioRepository;
+
+
     public TrackingDTO getTracking(Long tramiteId) {
         Tramite t = tramiteRepo.findById(tramiteId).orElseThrow();
         long days = ChronoUnit.DAYS.between(t.getSubmissionDate(), LocalDate.now());

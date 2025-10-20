@@ -1,0 +1,33 @@
+[Unit]
+Description=SEGAR Backend Spring Boot Application
+After=network.target docker.service
+Wants=docker.service
+
+[Service]
+Type=simple
+User=segarsolutions
+Group=segarsolutions
+WorkingDirectory=/home/segarsolutions/SEGAR-BackEnd/segar-backend
+
+# ⚠️ CAMBIAR estas URLs por tu dominio real
+Environment="KEYCLOAK_AUTH_SERVER_URL=https://api.tudominio.com/auth"
+Environment="KEYCLOAK_ISSUER_URI=https://api.tudominio.com/auth/realms/segar"
+Environment="KEYCLOAK_JWK_SET_URI=https://api.tudominio.com/auth/realms/segar/protocol/openid-connect/certs"
+
+# Comando de ejecución
+ExecStart=/home/segarsolutions/SEGAR-BackEnd/segar-backend/start-backend.sh
+
+# Política de reinicio
+Restart=always
+RestartSec=10
+
+# Logs
+StandardOutput=append:/home/segarsolutions/logs/backend.log
+StandardError=append:/home/segarsolutions/logs/backend-error.log
+
+# Límites de recursos (opcional)
+# LimitNOFILE=65536
+
+[Install]
+WantedBy=multi-user.target
+

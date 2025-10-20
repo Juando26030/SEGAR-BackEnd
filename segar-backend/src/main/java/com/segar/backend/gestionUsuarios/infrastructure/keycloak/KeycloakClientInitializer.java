@@ -34,37 +34,64 @@ public class KeycloakClientInitializer {
     @Order(2)
     public void initializeKeycloakClient() {
         try {
-            logger.info("🔧 ========== INICIALIZANDO CLIENTE KEYCLOAK ==========");
+            logger.info("🔧 ========== INICIALIZANDO ROLES DEL CLIENTE KEYCLOAK ==========");
             logger.info("🔧 Realm: {}", realm);
 
-            // Verificar si el cliente segar-backend existe
-            List<ClientRepresentation> clients = keycloak.realm(realm)
-                    .clients()
-                    .findByClientId("segar-backend");
+            String clientUUID = null;
 
-            if (clients.isEmpty()) {
-                logger.error("❌ Cliente 'segar-backend' NO encontrado en Keycloak");
-                logger.error("❌ Por favor, cree el cliente 'segar-backend' en Keycloak manualmente");
-                logger.info("📋 Clientes disponibles:");
-                keycloak.realm(realm).clients().findAll().forEach(client ->
-                    logger.info("   - {}", client.getClientId())
-                );
+            // Intentar buscar el cliente por clientId
+            try {
+                List<ClientRepresentation> clients = keycloak.realm(realm)
+                        .clients()
+                        .findByClientId("segar-backend");
+
+                if (!clients.isEmpty()) {
+                    clientUUID = clients.get(0).getId();
+                    logger.info("✅ Cliente 'segar-backend' encontrado con UUID: {}", clientUUID);
+                }
+            } catch (Exception e) {
+                logger.warn("⚠️ No se pudo buscar el cliente por clientId (posible falta de permisos): {}", e.getMessage());
+            }
+
+            // Si no se encontró por búsqueda, intentar listar todos y buscar manualmente
+            if (clientUUID == null) {
+                try {
+                    logger.info("🔍 Intentando listar todos los clientes...");
+                    List<ClientRepresentation> allClients = keycloak.realm(realm).clients().findAll();
+
+                    for (ClientRepresentation client : allClients) {
+                        if ("segar-backend".equals(client.getClientId())) {
+                            clientUUID = client.getId();
+                            logger.info("✅ Cliente 'segar-backend' encontrado en lista completa con UUID: {}", clientUUID);
+                            break;
+                        }
+                    }
+                } catch (Exception e) {
+                    logger.warn("⚠️ No se pudo listar todos los clientes: {}", e.getMessage());
+                }
+            }
+
+            if (clientUUID == null) {
+                logger.warn("⚠️ No se pudo obtener el UUID del cliente 'segar-backend'");
+                logger.warn("⚠️ Esto puede deberse a falta de permisos del Service Account");
+                logger.warn("⚠️ La aplicación seguirá funcionando, pero no se verificarán los roles");
+                logger.info("💡 Para habilitar la gestión automática de roles:");
+                logger.info("   1. En Keycloak Admin Console, ve a Clients > segar-backend");
+                logger.info("   2. En la pestaña 'Service account roles', asigna los roles:");
+                logger.info("      - realm-management > view-clients");
+                logger.info("      - realm-management > manage-clients");
                 return;
             }
 
-            String clientId = clients.getFirst().getId();
-            logger.info("✅ Cliente 'segar-backend' encontrado con ID: {}", clientId);
-
-            // Verificar y crear rol "Empleado" si no existe
-            ensureRoleExists(clientId, "Empleado", "Empleado operativo");
-
-            // Verificar y crear rol "admin" si no existe
-            ensureRoleExists(clientId, "admin", "Administrador del sistema");
+            // Verificar y crear roles
+            ensureRoleExists(clientUUID, "Empleado", "Empleado operativo");
+            ensureRoleExists(clientUUID, "admin", "Administrador del sistema");
 
             logger.info("✅ ========== INICIALIZACIÓN COMPLETADA ==========");
 
         } catch (Exception e) {
-            logger.error("❌ Error al inicializar cliente Keycloak: {}", e.getMessage(), e);
+            logger.error("❌ Error al inicializar cliente Keycloak: {}", e.getMessage());
+            logger.warn("⚠️ La aplicación continuará, pero algunos roles pueden no estar configurados");
         }
     }
 
@@ -78,10 +105,10 @@ public class KeycloakClientInitializer {
                     .get(roleName)
                     .toRepresentation();
 
-            logger.info("✅ Rol '{}' ya existe", roleName);
+            logger.info("✅ Rol '{}' ya existe en el cliente", roleName);
 
         } catch (Exception e) {
-            // Si no existe, crearlo
+            // Si no existe, intentar crearlo
             try {
                 logger.info("🔧 Creando rol '{}' en cliente segar-backend...", roleName);
 
@@ -98,7 +125,8 @@ public class KeycloakClientInitializer {
                 logger.info("✅ Rol '{}' creado exitosamente", roleName);
 
             } catch (Exception createException) {
-                logger.error("❌ Error al crear rol '{}': {}", roleName, createException.getMessage());
+                logger.warn("⚠️ No se pudo crear el rol '{}': {}", roleName, createException.getMessage());
+                logger.info("💡 Por favor, crea el rol manualmente en Keycloak Admin Console");
             }
         }
     }

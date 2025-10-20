@@ -55,75 +55,37 @@ public class KeycloakDiagnostics {
             var realmInfo = keycloak.realm(realm).toRepresentation();
             logger.info("✅ Acceso exitoso al realm: {}", realmInfo.getRealm());
 
-            // Test 3: Listar TODOS los clientes disponibles
-            logger.info("📡 Test 3: Listando TODOS los clientes en el realm...");
-            List<ClientRepresentation> allClients = keycloak.realm(realm).clients().findAll();
-            logger.info("📋 Total de clientes encontrados: {}", allClients.size());
+            // Test 3: Intentar listar clientes (puede fallar por permisos)
+            logger.info("📡 Test 3: Verificando permisos para listar clientes...");
+            try {
+                List<ClientRepresentation> allClients = keycloak.realm(realm).clients().findAll();
+                logger.info("✅ Permisos OK - Total de clientes: {}", allClients.size());
 
-            for (ClientRepresentation client : allClients) {
-                logger.info("   📌 Cliente ID: '{}' (UUID: {})", client.getClientId(), client.getId());
-                logger.info("      - Enabled: {}", client.isEnabled());
-                logger.info("      - Service Accounts Enabled: {}", client.isServiceAccountsEnabled());
-            }
-
-            // Test 4: Buscar específicamente el cliente segar-backend
-            logger.info("📡 Test 4: Buscando cliente específico 'segar-backend'...");
-            List<ClientRepresentation> segarClients = keycloak.realm(realm)
-                    .clients()
-                    .findByClientId("segar-backend");
-
-            if (segarClients.isEmpty()) {
-                logger.error("❌ Cliente 'segar-backend' NO encontrado usando findByClientId()");
-                logger.error("❌ Esto es RARO porque sí aparece en la lista de todos los clientes");
-
-                // Buscar manualmente en la lista
-                logger.info("🔍 Buscando manualmente en la lista completa...");
+                // Buscar segar-backend en la lista
                 boolean found = false;
                 for (ClientRepresentation client : allClients) {
                     if ("segar-backend".equals(client.getClientId())) {
                         found = true;
-                        logger.info("✅ ¡ENCONTRADO MANUALMENTE!");
-                        logger.info("   - UUID: {}", client.getId());
-                        logger.info("   - Enabled: {}", client.isEnabled());
-                        logger.info("   - Service Accounts: {}", client.isServiceAccountsEnabled());
-                        logger.info("   - Public Client: {}", client.isPublicClient());
+                        logger.info("✅ Cliente 'segar-backend' encontrado (UUID: {})", client.getId());
                         break;
                     }
                 }
 
                 if (!found) {
-                    logger.error("❌ No se encontró 'segar-backend' ni siquiera manualmente");
+                    logger.warn("⚠️ Cliente 'segar-backend' no aparece en la lista de clientes");
                 }
 
-            } else {
-                ClientRepresentation segarClient = segarClients.getFirst();
-                logger.info("✅ Cliente 'segar-backend' encontrado con UUID: {}", segarClient.getId());
-                logger.info("   - Enabled: {}", segarClient.isEnabled());
-                logger.info("   - Service Accounts Enabled: {}", segarClient.isServiceAccountsEnabled());
-                logger.info("   - Public Client: {}", segarClient.isPublicClient());
-                logger.info("   - Protocol: {}", segarClient.getProtocol());
-
-                // Test 5: Verificar roles del cliente
-                logger.info("📡 Test 5: Verificando roles del cliente...");
-                try {
-                    var roles = keycloak.realm(realm)
-                            .clients()
-                            .get(segarClient.getId())
-                            .roles()
-                            .list();
-                    logger.info("✅ Roles disponibles en 'segar-backend': {}", roles.size());
-                    roles.forEach(role -> logger.info("   - Rol: '{}'", role.getName()));
-                } catch (Exception e) {
-                    logger.error("❌ Error al obtener roles: {}", e.getMessage());
-                }
+            } catch (Exception e) {
+                logger.warn("⚠️ No se pueden listar clientes (permisos limitados)");
+                logger.warn("⚠️ Esto es normal si el Service Account no tiene rol 'view-clients'");
+                logger.info("💡 La aplicación funcionará correctamente para gestión de usuarios");
             }
 
-        } catch (Exception e) {
-            logger.error("❌ Error durante el diagnóstico: {}", e.getMessage(), e);
-            logger.error("❌ Causa raíz: {}", e.getCause() != null ? e.getCause().getMessage() : "N/A");
-        }
+            logger.info("🔍 ========== FIN DEL DIAGNÓSTICO ==========");
 
-        logger.info("🔍 ========== FIN DEL DIAGNÓSTICO ==========");
+        } catch (Exception e) {
+            logger.error("❌ Error en diagnóstico de Keycloak: {}", e.getMessage());
+            logger.warn("⚠️ Revisa la configuración de Keycloak en application.properties");
+        }
     }
 }
-

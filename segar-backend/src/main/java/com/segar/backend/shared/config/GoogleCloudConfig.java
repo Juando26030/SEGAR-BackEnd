@@ -15,10 +15,11 @@ public class GoogleCloudConfig {
 
     @Bean
     public Storage storage() throws IOException {
+        String rootPath = System.getProperty("user.dir");
         return StorageOptions.newBuilder()
                 .setProjectId("segar-cloud-473618")
                 .setCredentials(ServiceAccountCredentials.fromStream(
-                        new FileInputStream("/Users/danielteran/Documents/tesis/SEGAR-BackEnd/segar-backend/gcp-service-account.json")))
+                        new FileInputStream(rootPath + "/segar-backend/gcp-service-account.json")))
                 .build()
                 .getService();
     }

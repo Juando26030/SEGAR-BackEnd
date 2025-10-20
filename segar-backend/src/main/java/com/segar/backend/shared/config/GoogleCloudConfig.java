@@ -7,10 +7,12 @@ import com.google.cloud.storage.StorageOptions;
 import java.io.FileInputStream;
 import java.io.IOException;
 
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
 @Configuration
+@ConditionalOnProperty(name = "spring.cloud.gcp.enabled", havingValue = "true")
 public class GoogleCloudConfig {
 
     @Bean
@@ -19,7 +21,7 @@ public class GoogleCloudConfig {
         return StorageOptions.newBuilder()
                 .setProjectId("segar-cloud-473618")
                 .setCredentials(ServiceAccountCredentials.fromStream(
-                        new FileInputStream(rootPath + "/segar-backend/gcp-service-account.json")))
+                        new FileInputStream(rootPath + "/gcp-service-account.json")))
                 .build()
                 .getService();
     }

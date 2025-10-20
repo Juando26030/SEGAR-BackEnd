@@ -19,4 +19,28 @@ public class ProductoServiceImpl{
         List<Producto> productos = productoRepository.findAll();
         return productos;
     }
+
+    public Producto saveProducto(Producto producto) {
+        return productoRepository.save(producto);
+    }
+
+    public void deleteProducto(Long id) {
+        productoRepository.deleteById(id);
+    }
+
+    public Producto getProductoById(Long id) {
+        return productoRepository.findById(id).orElse(null);
+    }
+
+    public Producto updateProducto(Long id, Producto updatedProducto) {
+        return productoRepository.findById(id).map(producto -> {
+            producto.setNombre(updatedProducto.getNombre());
+            producto.setDescripcion(updatedProducto.getDescripcion());
+            producto.setEspecificaciones(updatedProducto.getEspecificaciones());
+            producto.setReferencia(updatedProducto.getReferencia());
+            producto.setFabricante(updatedProducto.getFabricante());
+            producto.setEmpresaId(updatedProducto.getEmpresaId());
+            return productoRepository.save(producto);
+        }).orElse(null);
+    }
 }

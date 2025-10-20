@@ -22,11 +22,16 @@ public class Tramite {
     private String radicadoNumber;
     private LocalDate submissionDate;
     private String procedureType;
-    private String productName;
+    @OneToOne
+    private Producto product;
     @Enumerated(EnumType.STRING)
     private EstadoTramite currentStatus;
     private LocalDateTime lastUpdate;
 
     @OneToMany(mappedBy = "tramite", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<EventoTramite> eventos = new ArrayList<>();
+
+    public void addEvento(EventoTramite evento) {
+        eventos.add(evento);
+    }
 }

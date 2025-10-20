@@ -1,5 +1,6 @@
 package com.segar.backend.tramites.api;
 
+import com.segar.backend.shared.domain.Tramite;
 import com.segar.backend.tramites.api.dto.*;
 
 
@@ -12,14 +13,30 @@ import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.util.List;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+
+
 
 @RestController
-@RequestMapping("/api/tramites/{id}")
+@RequestMapping("/api/tramites")
 @RequiredArgsConstructor
 public class TramitesController {
 
     private final TramiteServiceImpl service;
 
+    @GetMapping("/all")
+    public List<Tramite> obtenerTramites() { 
+        return service.getAllTramites(); 
+    }
+
+    @PostMapping("/create")
+    public Tramite createTramite(@RequestBody RadicacionSolicitudDTO tramite) {
+        return service.createTramite(tramite);
+    }
+    
 
     @GetMapping("/tracking")
     public TrackingDTO tracking(@PathVariable Long id) { return service.getTracking(id); }

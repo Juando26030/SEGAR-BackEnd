@@ -2,6 +2,7 @@ package com.segar.backend.shared.database;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.List;
 
 import com.segar.backend.shared.domain.*;
@@ -155,7 +156,7 @@ public class DatabaseInit implements ApplicationRunner{
         t1.setRadicadoNumber("2024-001234-56789");
         t1.setSubmissionDate(LocalDate.of(2024, 3, 15));
         t1.setProcedureType("Registro Sanitario - Alimento de Riesgo Medio");
-        t1.setProductName("Yogurt Natural Premium");
+        t1.setProduct(producto1);
         t1.setCurrentStatus(EstadoTramite.APROBADO);
         t1.setLastUpdate(LocalDateTime.now().minusDays(10));
         tramiteRepo.save(t1);
@@ -165,7 +166,7 @@ public class DatabaseInit implements ApplicationRunner{
         t2.setRadicadoNumber("2024-002345-67890");
         t2.setSubmissionDate(LocalDate.of(2024, 2, 20));
         t2.setProcedureType("Registro Sanitario - Alimento de Riesgo Bajo");
-        t2.setProductName("Leche Deslactosada UHT");
+        t2.setProduct(producto2);
         t2.setCurrentStatus(EstadoTramite.APROBADO);
         t2.setLastUpdate(LocalDateTime.now().minusDays(5));
         tramiteRepo.save(t2);
@@ -175,7 +176,7 @@ public class DatabaseInit implements ApplicationRunner{
         t3.setRadicadoNumber("2024-003456-78901");
         t3.setSubmissionDate(LocalDate.now().minusDays(2));
         t3.setProcedureType("Registro Sanitario - Alimento de Riesgo Alto");
-        t3.setProductName("Queso Mozzarella Premium");
+        t3.setProduct(producto3);
         t3.setCurrentStatus(EstadoTramite.RADICADO);
         t3.setLastUpdate(LocalDateTime.now().minusDays(2));
         tramiteRepo.save(t3);
@@ -185,7 +186,7 @@ public class DatabaseInit implements ApplicationRunner{
         t4.setRadicadoNumber("2024-004567-89012");
         t4.setSubmissionDate(LocalDate.of(2024, 4, 10));
         t4.setProcedureType("Registro Sanitario - Alimento de Riesgo Medio");
-        t4.setProductName("Mantequilla Sin Sal");
+        t4.setProduct(producto4);
         t4.setCurrentStatus(EstadoTramite.EN_EVALUACION_TECNICA);
         t4.setLastUpdate(LocalDateTime.now().minusDays(3));
         tramiteRepo.save(t4);
@@ -195,7 +196,7 @@ public class DatabaseInit implements ApplicationRunner{
         t5.setRadicadoNumber("2024-005678-90123");
         t5.setSubmissionDate(LocalDate.of(2024, 4, 5));
         t5.setProcedureType("Registro Sanitario - Alimento de Riesgo Medio");
-        t5.setProductName("Kumis Natural");
+        t5.setProduct(producto5);
         t5.setCurrentStatus(EstadoTramite.REQUIERE_INFORMACION);
         t5.setLastUpdate(LocalDateTime.now().minusDays(1));
         tramiteRepo.save(t5);
@@ -205,23 +206,23 @@ public class DatabaseInit implements ApplicationRunner{
         t6.setRadicadoNumber("2019-006789-01234");
         t6.setSubmissionDate(LocalDate.of(2019, 11, 10));
         t6.setProcedureType("Registro Sanitario - Alimento de Riesgo Medio");
-        t6.setProductName("Crema de Leche Premium");
+        t6.setProduct(producto6);
         t6.setCurrentStatus(EstadoTramite.APROBADO);
         t6.setLastUpdate(LocalDateTime.now().minusDays(1800)); // Hace 5 años aprox
         tramiteRepo.save(t6);
 
         // EVENTOS PARA TRÁMITE 1 (APROBADO)
-        crearEventosCompletos(t1, eventoRepo);
+        crearEventosCompletos(t1, eventoRepo, tramiteRepo);
         // EVENTOS PARA TRÁMITE 2 (APROBADO)
-        crearEventosCompletos(t2, eventoRepo);
+        crearEventosCompletos(t2, eventoRepo, tramiteRepo);
         // EVENTOS PARA TRÁMITE 3 (RADICADO)
-        crearEventosRadicado(t3, eventoRepo);
+        crearEventosRadicado(t3, eventoRepo, tramiteRepo);
         // EVENTOS PARA TRÁMITE 4 (EN EVALUACIÓN)
-        crearEventosEnEvaluacion(t4, eventoRepo);
+        crearEventosEnEvaluacion(t4, eventoRepo, tramiteRepo);
         // EVENTOS PARA TRÁMITE 5 (REQUIERE INFO)
-        crearEventosRequiereInfo(t5, eventoRepo);
+        crearEventosRequiereInfo(t5, eventoRepo, tramiteRepo);
         // EVENTOS PARA TRÁMITE 6 (APROBADO ANTIGUO)
-        crearEventosCompletos(t6, eventoRepo);
+        crearEventosCompletos(t6, eventoRepo, tramiteRepo);
 
         // REQUERIMIENTOS SOLO PARA TRÁMITE 5
         crearRequerimientos(t5, reqRepo);
@@ -344,50 +345,59 @@ public class DatabaseInit implements ApplicationRunner{
         System.out.println("✅ " + eventosCalendario.size() + " eventos de calendario creados");
     }
 
-    private void crearEventosCompletos(Tramite tramite, EventoTramiteRepository repo) {
-        List<EventoTramite> eventos = List.of(
+    private void crearEventosCompletos(Tramite tramite, EventoTramiteRepository repo, TramiteRepository tramiteRepo) {
+        List<EventoTramite> eventos = new ArrayList<>(List.of(
                 crearEvento(tramite, 1, "Solicitud Radicada", "Documentos recibidos y radicado asignado", tramite.getSubmissionDate(), true, false),
                 crearEvento(tramite, 2, "Verificación Documental", "Revisión inicial de documentos completada", tramite.getSubmissionDate().plusDays(5), true, false),
                 crearEvento(tramite, 3, "Evaluación Técnica", "Análisis técnico del producto completado", tramite.getSubmissionDate().plusDays(10), true, false),
                 crearEvento(tramite, 4, "Aprobación", "Trámite aprobado satisfactoriamente", tramite.getSubmissionDate().plusDays(15), true, true)
-        );
+        ));
+        tramite.setEventos(eventos);
+        tramiteRepo.save(tramite);
         repo.saveAll(eventos);
     }
 
-    private void crearEventosRadicado(Tramite tramite, EventoTramiteRepository repo) {
-        List<EventoTramite> eventos = List.of(
+    private void crearEventosRadicado(Tramite tramite, EventoTramiteRepository repo, TramiteRepository tramiteRepo) {
+        List<EventoTramite> eventos = new ArrayList<>(List.of(
                 crearEvento(tramite, 1, "Solicitud Radicada", "Documentos recibidos y radicado asignado", tramite.getSubmissionDate(), true, true),
                 crearEvento(tramite, 2, "Verificación Documental", "Pendiente revisión inicial de documentos", null, false, false),
                 crearEvento(tramite, 3, "Evaluación Técnica", "Pendiente análisis técnico", null, false, false),
                 crearEvento(tramite, 4, "Resolución", "Pendiente emisión de resolución", null, false, false)
-        );
+        ));
+        tramite.setEventos(eventos);
+        tramiteRepo.save(tramite);
         repo.saveAll(eventos);
     }
 
-    private void crearEventosEnEvaluacion(Tramite tramite, EventoTramiteRepository repo) {
-        List<EventoTramite> eventos = List.of(
+    private void crearEventosEnEvaluacion(Tramite tramite, EventoTramiteRepository repo, TramiteRepository tramiteRepo) {
+        List<EventoTramite> eventos = new ArrayList<>(List.of(
                 crearEvento(tramite, 1, "Solicitud Radicada", "Documentos recibidos y radicado asignado", tramite.getSubmissionDate(), true, false),
                 crearEvento(tramite, 2, "Verificación Documental", "Revisión inicial de documentos completada", tramite.getSubmissionDate().plusDays(3), true, false),
                 crearEvento(tramite, 3, "Evaluación Técnica", "Análisis técnico del producto en curso", tramite.getSubmissionDate().plusDays(7), false, true),
                 crearEvento(tramite, 4, "Resolución", "Pendiente emisión de resolución", null, false, false)
-        );
+        ));
+        tramite.setEventos(eventos);
+        tramiteRepo.save(tramite);
         repo.saveAll(eventos);
     }
 
-    private void crearEventosRequiereInfo(Tramite tramite, EventoTramiteRepository repo) {
-        List<EventoTramite> eventos = List.of(
+    private void crearEventosRequiereInfo(Tramite tramite, EventoTramiteRepository repo, TramiteRepository tramiteRepo) {
+        List<EventoTramite> eventos = new ArrayList<>(List.of(
                 crearEvento(tramite, 1, "Solicitud Radicada", "Documentos recibidos y radicado asignado", tramite.getSubmissionDate(), true, false),
                 crearEvento(tramite, 2, "Verificación Documental", "Revisión inicial completada - Se requiere información adicional", tramite.getSubmissionDate().plusDays(3), true, false),
                 crearEvento(tramite, 3, "Requiere Información", "Esperando documentos adicionales del solicitante", tramite.getSubmissionDate().plusDays(5), false, true),
                 crearEvento(tramite, 4, "Evaluación Técnica", "Pendiente análisis técnico", null, false, false)
-        );
+        ));
+        tramite.setEventos(eventos);
+        tramiteRepo.save(tramite);
         repo.saveAll(eventos);
+
     }
 
     private EventoTramite crearEvento(Tramite tramite, int orden, String title, String description, LocalDate date, boolean completed, boolean current) {
         EventoTramite evento = new EventoTramite();
-        evento.setTramite(tramite);
         evento.setTitle(title);
+        evento.setTramite(tramite);
         evento.setDescription(description);
         evento.setDate(date);
         evento.setCompleted(completed);

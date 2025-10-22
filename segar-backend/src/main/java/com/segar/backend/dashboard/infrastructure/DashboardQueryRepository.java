@@ -180,4 +180,91 @@ public class DashboardQueryRepository {
     }
 
 
+
+
+    // Consultas por empresa (a través del producto)
+    public long totalTramitesByEmpresa(Long empresaId) {
+        return em.createQuery(
+                "select count(t) from Tramite t where t.product.empresaId = :empresaId",
+                Long.class
+        ).setParameter("empresaId", empresaId).getSingleResult();
+    }
+
+    public List<Object[]> countTramitesByEstadoAndEmpresa(Long empresaId) {
+        return em.createQuery(
+                "select t.currentStatus, count(t) from Tramite t " +
+                        "where t.product.empresaId = :empresaId " +
+                        "group by t.currentStatus",
+                Object[].class
+        ).setParameter("empresaId", empresaId).getResultList();
+    }
+
+    // Consultas por usuario
+    public long totalTramitesByUsuario(Long usuarioId) {
+        return em.createQuery(
+                "select count(t) from Tramite t where t.usuario.id = :usuarioId",
+                Long.class
+        ).setParameter("usuarioId", usuarioId).getSingleResult();
+    }
+
+    public List<Object[]> countTramitesByEstadoAndUsuario(Long usuarioId) {
+        return em.createQuery(
+                "select t.currentStatus, count(t) from Tramite t " +
+                        "where t.usuario.id = :usuarioId " +
+                        "group by t.currentStatus",
+                Object[].class
+        ).setParameter("usuarioId", usuarioId).getResultList();
+    }
+
+    public List<Object[]> tramitesRecientesByEmpresa(Long empresaId, int limit) {
+        return em.createQuery(
+                        "select t.id, t.radicadoNumber, coalesce(p.nombre, 'Sin producto'), " +
+                                "t.procedureType, t.currentStatus, t.lastUpdate " +
+                                "from Tramite t left join t.product p " +
+                                "where p.empresaId = :empresaId " +
+                                "order by t.lastUpdate desc",
+                        Object[].class
+                ).setParameter("empresaId", empresaId)
+                .setMaxResults(limit)
+                .getResultList();
+    }
+
+    public List<Object[]> tramitesRecientesByUsuario(Long usuarioId, int limit) {
+        return em.createQuery(
+                        "select t.id, t.radicadoNumber, coalesce(p.nombre, 'Sin producto'), " +
+                                "t.procedureType, t.currentStatus, t.lastUpdate " +
+                                "from Tramite t left join t.product p " +
+                                "where t.usuario.id = :usuarioId " +
+                                "order by t.lastUpdate desc",
+                        Object[].class
+                ).setParameter("usuarioId", usuarioId)
+                .setMaxResults(limit)
+                .getResultList();
+    }
+
+
+    public List<Object[]> countTramitesByMonth(int year, Long empresaId) {
+        return em.createQuery(
+                        "select month(t.submissionDate), count(t) from Tramite t " +
+                                "where year(t.submissionDate) = :year and t.product.empresaId = :empresaId " +
+                                "group by month(t.submissionDate) order by month(t.submissionDate)",
+                        Object[].class
+                ).setParameter("year", year)
+                .setParameter("empresaId", empresaId)
+                .getResultList();
+    }
+
+    public List<Object[]> countTramitesByMonthByUsuario(int year, Long usuarioId) {
+        return em.createQuery(
+                        "select month(t.submissionDate), count(t) from Tramite t " +
+                                "where year(t.submissionDate) = :year and t.usuario.id = :usuarioId " +
+                                "group by month(t.submissionDate) order by month(t.submissionDate)",
+                        Object[].class
+                ).setParameter("year", year)
+                .setParameter("usuarioId", usuarioId)
+                .getResultList();
+    }
+
+
+
 }

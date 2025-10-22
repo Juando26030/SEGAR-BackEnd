@@ -2,6 +2,7 @@ package com.segar.backend.dashboard.service;
 
 import com.segar.backend.dashboard.domain.dto.*;
 import com.segar.backend.dashboard.infrastructure.DashboardQueryRepository;
+import com.segar.backend.shared.domain.EstadoRegistro;
 import com.segar.backend.tramites.infrastructure.RegistroSanitarioRepository;
 import org.springframework.stereotype.Service;
 
@@ -258,6 +259,72 @@ public class DashboardService {
                 )).toList();
 
         return new BusquedaGlobalDTO(tramites, registros, totalTramites, totalRegistros);
+    }
+
+
+
+    public DashboardResumenDTO getResumenByEmpresa(Long empresaId, int diasVencimientoVentana) {
+        long totalTramites = queryRepository.totalTramitesByEmpresa(empresaId);
+        long totalRegistros = registroSanitarioRepository.countByEmpresaId(empresaId);
+        long registrosVigentes = registroSanitarioRepository.countByEmpresaIdAndEstado(empresaId, EstadoRegistro.VIGENTE);
+        long registrosPorVencer = registroSanitarioRepository.countByEmpresaIdAndVencimiento(
+                empresaId,
+                LocalDateTime.now().plusDays(diasVencimientoVentana)
+        );
+        long registrosVencidos = totalRegistros - registrosVigentes;
+
+        List<Object[]> porEstadoData = queryRepository.countTramitesByEstadoAndEmpresa(empresaId);
+        List<ConteoPorEstadoDTO> porEstado = porEstadoData.stream()
+                .map(row -> new ConteoPorEstadoDTO(String.valueOf(row[0]), ((Number) row[1]).longValue()))
+                .toList();
+
+        return DashboardResumenDTO.builder()
+                .totalTramites(totalTramites)
+                .tramitesPorEstado(porEstado)
+                .totalRegistros(totalRegistros)
+                .registrosVigentes(registrosVigentes)
+                .registrosPorVencer(registrosPorVencer)
+                .registrosVencidos(registrosVencidos)
+                .build();
+    }
+
+    public DashboardResumenDTO getResumenByUsuario(Long usuarioId, int diasVencimientoVentana) {
+        long totalTramites = queryRepository.totalTramitesByUsuario(usuarioId);
+
+        List<Object[]> porEstadoData = queryRepository.countTramitesByEstadoAndUsuario(usuarioId);
+        List<ConteoPorEstadoDTO> porEstado = porEstadoData.stream()
+                .map(row -> new ConteoPorEstadoDTO(String.valueOf(row[0]), ((Number) row[1]).longValue()))
+                .toList();
+
+        return DashboardResumenDTO.builder()
+                .totalTramites(totalTramites)
+                .tramitesPorEstado(porEstado)
+                .totalRegistros(0)
+                .registrosVigentes(0)
+                .registrosPorVencer(0)
+                .registrosVencidos(0)
+                .build();
+    }
+
+
+    public List<SerieMesDTO> tramitesPorMesByEmpresa(int year, Long empresaId) {
+        List<Object[]> rows = queryRepository.countTramitesByMonth(year, empresaId);
+        return rows.stream()
+                .map(row -> new SerieMesDTO(
+                        ((Number) row[0]).intValue(),
+                        ((Number) row[1]).longValue()
+                ))
+                .toList();
+    }
+
+    public List<SerieMesDTO> tramitesPorMesByUsuario(int year, Long usuarioId) {
+        List<Object[]> rows = queryRepository.countTramitesByMonthByUsuario(year, usuarioId);
+        return rows.stream()
+                .map(row -> new SerieMesDTO(
+                        ((Number) row[0]).intValue(),
+                        ((Number) row[1]).longValue()
+                ))
+                .toList();
     }
 
 

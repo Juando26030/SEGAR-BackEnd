@@ -25,6 +25,21 @@ public class DashboardController {
         return ResponseEntity.ok(dashboardService.getResumen(diasVencimiento));
     }
 
+    @GetMapping("/resumen/empresa/{empresaId}")
+    public ResponseEntity<DashboardResumenDTO> getResumenEmpresa(
+            @PathVariable Long empresaId,
+            @RequestParam(defaultValue = "30") int diasVencimiento) {
+        return ResponseEntity.ok(dashboardService.getResumenByEmpresa(empresaId, diasVencimiento));
+    }
+
+    @GetMapping("/resumen/usuario/{usuarioId}")
+    public ResponseEntity<DashboardResumenDTO> getResumenUsuario(
+            @PathVariable Long usuarioId,
+            @RequestParam(defaultValue = "30") int diasVencimiento) {
+        return ResponseEntity.ok(dashboardService.getResumenByUsuario(usuarioId, diasVencimiento));
+    }
+
+
     @GetMapping("/tramites/por-estado")
     public ResponseEntity<List<ConteoPorEstadoDTO>> tramitesPorEstado() {
         return ResponseEntity.ok(dashboardService.tramitesPorEstado());
@@ -37,6 +52,22 @@ public class DashboardController {
         int y = (year != null) ? year : LocalDate.now().getYear();
         return ResponseEntity.ok(dashboardService.tramitesPorMes(y));
     }
+    @GetMapping("/tramites/por-mes/empresa/{empresaId}")
+    public ResponseEntity<List<SerieMesDTO>> tramitesPorMesEmpresa(
+            @PathVariable Long empresaId,
+            @RequestParam(name = "year", required = false) Integer year) {
+        int y = (year != null) ? year : LocalDate.now().getYear();
+        return ResponseEntity.ok(dashboardService.tramitesPorMesByEmpresa(y, empresaId));
+    }
+
+    @GetMapping("/tramites/por-mes/usuario/{usuarioId}")
+    public ResponseEntity<List<SerieMesDTO>> tramitesPorMesUsuario(
+            @PathVariable Long usuarioId,
+            @RequestParam(name = "year", required = false) Integer year) {
+        int y = (year != null) ? year : LocalDate.now().getYear();
+        return ResponseEntity.ok(dashboardService.tramitesPorMesByUsuario(y, usuarioId));
+    }
+
 
     @GetMapping("/requerimientos/pendientes")
     public ResponseEntity<List<RequerimientoPendienteDTO>> requerimientosPendientes(

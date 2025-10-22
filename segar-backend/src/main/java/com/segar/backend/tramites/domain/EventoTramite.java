@@ -1,5 +1,6 @@
 package com.segar.backend.tramites.domain;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.segar.backend.shared.domain.Tramite;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
@@ -17,7 +18,8 @@ public class EventoTramite {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @ManyToOne(fetch = FetchType.LAZY)
+    @ManyToOne
+    @JsonIgnore
     @JoinColumn(name = "tramite_id")
     private Tramite tramite;
 

@@ -38,4 +38,8 @@ public interface EventoRepository extends JpaRepository<Evento, Long> {
 
     @Query("SELECT COUNT(e) FROM Evento e WHERE e.fecha < CURRENT_DATE AND e.estado = 'ACTIVO'")
     long countEventosVencidos();
+
+    @Query("SELECT e FROM Evento e WHERE e.fecha >= CURRENT_DATE AND e.estado = 'ACTIVO' ORDER BY e.fecha ASC")
+    List<Evento> findTop3ProximosEventos(org.springframework.data.domain.Pageable pageable);
+
 }

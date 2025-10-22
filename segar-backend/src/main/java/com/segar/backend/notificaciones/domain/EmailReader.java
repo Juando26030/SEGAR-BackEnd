@@ -1,5 +1,6 @@
 package com.segar.backend.notificaciones.domain;
 
+import com.segar.backend.notificaciones.api.dto.EmailSearchFilter;
 import java.time.LocalDateTime;
 import java.util.List;
 
@@ -17,6 +18,16 @@ public interface EmailReader {
      * Lee correos nuevos (no leídos) del buzón de entrada
      */
     List<Email> readNewEmails() throws EmailReadingException;
+
+    /**
+     * Lee correos enviados desde el servidor IMAP (carpeta Sent Mail)
+     */
+    List<Email> readSentEmails() throws EmailReadingException;
+
+    /**
+     * Lee correos con filtros específicos desde el servidor IMAP
+     */
+    List<Email> readEmailsWithFilters(EmailSearchFilter filter) throws EmailReadingException;
 
     /**
      * Lee correos en un rango de fechas específico

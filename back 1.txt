@@ -1,0 +1,202 @@
+📋 RECOMENDACIONES PARA EL BACKEND - SISTEMA DE DOCUMENTOS DINÁMICOS
+✅ INTEGRACIÓN COMPLETADA EN EL FRONTEND
+Se han creado los siguientes servicios para conectar con el backend:
+
+1. DocumentTemplateService
+Maneja las plantillas de documentos desde el backend
+Convierte los DTOs del backend al formato esperado por el frontend
+Endpoint principal: /api/document-templates
+2. DocumentInstanceService
+Maneja las instancias de documentos rellenados
+Gestiona borradores, envío y aprobación
+Endpoint principal: /api/tramites/{tramiteId}/document-instances
+3. TramiteInvimaService (Actualizado)
+Ahora consulta al backend en lugar de usar datos quemados
+Mantiene las reglas de negocio INVIMA en el frontend
+Obtiene documentos dinámicamente según clasificación
+🚨 REQUERIMIENTOS CRÍTICOS PARA EL BACKEND
+1. Agregar campo orden en DocumentTemplate
+PROBLEMA ACTUAL: El frontend necesita ordenar los documentos para mostrarlos en secuencia lógica.
+
+SOLUCIÓN REQUERIDA: Agregar campo orden (Integer) a la entidad DocumentTemplate.java
+
+@Entity
+public class DocumentTemplate {
+    // ...campos existentes...
+    
+    @Column(name = "orden")
+    private Integer orden; // Orden de presentación (1, 2, 3...)
+    
+    // Getters y setters
+}
+DTO también debe incluirlo:
+
+public class DocumentTemplateDTO {
+    // ...campos existentes...
+    private Integer orden;
+}
+IMPACTO: Sin este campo, los documentos se mostrarán en orden aleatorio en el frontend.
+
+2. Validar estructura JSON de fieldsDefinition
+El frontend espera que fieldsDefinition tenga esta estructura exacta:
+
+[
+  {
+    "nombre": "nombre_comercial",
+    "tipo": "text",
+    "requerido": true,
+    "placeholder": "Nombre del producto",
+    "descripcion": "Nombre comercial del producto",
+    "opciones": [],
+    "validacion": {
+      "min": 3,
+      "max": 100,
+      "pattern": "^[a-zA-Z0-9\\s]+$",
+      "mensaje": "Solo letras, números y espacios"
+    }
+  },
+  {
+    "nombre": "vida_util",
+    "tipo": "number",
+    "requerido": true,
+    "placeholder": "En meses",
+    "validacion": {
+      "min": 1,
+      "max": 120,
+      "mensaje": "Debe ser entre 1 y 120 meses"
+    }
+  }
+]
+Tipos válidos: text, number, date, textarea, select, file, checkbox
+
+3. Validar estructura JSON de fileRules
+{
+  "maxSize": 10485760,
+  "allowedTypes": ["PDF", "JPG", "PNG"],
+  "required": true
+}
+IMPORTANTE:
+
+maxSize en bytes (10MB = 10485760)
+allowedTypes: array de strings con extensiones permitidas
+required: booleano indicando si es obligatorio subir archivo
+4. Endpoint /api/document-templates/by-tramite-riesgo debe soportar ambos parámetros
+Request actual esperado:
+
+GET /api/document-templates/by-tramite-riesgo?tipoTramite=REGISTRO&categoriaRiesgo=ALTO
+VALIDACIÓN NECESARIA:
+
+Si categoriaRiesgo=ALTO → devolver documentos para RSA (Registro Sanitario)
+Si categoriaRiesgo=MEDIO → devolver documentos para PSA (Permiso Sanitario)
+Si categoriaRiesgo=BAJO → devolver documentos para NSO (Notificación Sanitaria)
+EJEMPLO DE RESPUESTA ESPERADA:
+
+Para un producto de riesgo ALTO (RSA), el backend debería devolver plantillas como:
+
+[
+  {
+    "id": 1,
+    "code": "CERTIFICADO_EXISTENCIA",
+    "name": "Certificado de Existencia y Representación Legal",
+    "description": "Certificado expedido por la Cámara de Comercio con vigencia no mayor a 30 días",
+    "fieldsDefinition": "[{...}]",
+    "fileRules": "{\"maxSize\":10485760,\"allowedTypes\":[\"PDF\"],\"required\":true}",
+    "appliesToTramiteTypes": ["REGISTRO"],
+    "categoryRiesgo": "ALTO",
+    "required": true,
+    "orden": 1,
+    "version": "1.0",
+    "active": true
+  },
+  {
+    "id": 2,
+    "code": "FICHA_TECNICA_BASICA",
+    "name": "Ficha Técnica Básica",
+    "orden": 2,
+    // ...resto de campos...
+  },
+  // ... más documentos según el riesgo
+]
+📊 MAPEO DE CATEGORÍAS DE RIESGO
+El frontend determina el tipo de trámite y categoría así:
+
+Categoría Riesgo	Tipo Trámite	Documentos Base
+BAJO	NSO (Notificación Sanitaria)	~5 documentos básicos
+MEDIO	PSA (Permiso Sanitario)	NSO + 5 adicionales (análisis, BPM)
+ALTO	RSA (Registro Sanitario)	PSA + 6 adicionales (HACCP, estudios)
+RECOMENDACIÓN: Crear un seeder/migration que pre-cargue estos documentos base en la BD.
+
+🔧 SUGERENCIAS DE MEJORA PARA EL BACKEND
+1. Endpoint para obtener categorías únicas
+GET /api/document-templates/categories
+Retorna: ["basico", "analisis", "certificacion", "estudios", "otros"]
+
+2. Endpoint para validar completitud antes de radicar
+POST /api/tramites/{id}/validate-documents
+Valida que todos los documentos obligatorios estén en estado SUBMITTED o APPROVED.
+
+3. Agregar campo category a DocumentTemplate
+Para clasificar documentos por tipo:
+
+basico: Documentos fundamentales (certificados, fichas)
+analisis: Análisis microbiológicos, fisicoquímicos
+certificacion: BPM, HACCP, ISO
+estudios: Estabilidad, vida útil
+otros: Documentos complementarios
+🎯 DATOS DE EJEMPLO PARA TESTING
+Plantilla para NSO (Riesgo BAJO):
+INSERT INTO document_template (code, name, description, fields_definition, file_rules, category_riesgo, required, orden, version, active) 
+VALUES (
+  'CERTIFICADO_EXISTENCIA',
+  'Certificado de Existencia y Representación Legal',
+  'Certificado expedido por la Cámara de Comercio con vigencia no mayor a 30 días',
+  '[{"nombre":"razon_social","tipo":"text","requerido":true,"placeholder":"Razón social de la empresa"},{"nombre":"nit","tipo":"text","requerido":true,"placeholder":"NIT sin dígito de verificación"},{"nombre":"archivo","tipo":"file","requerido":true}]',
+  '{"maxSize":10485760,"allowedTypes":["PDF"],"required":true}',
+  'BAJO',
+  true,
+  1,
+  '1.0',
+  true
+);
+🚀 PRÓXIMOS PASOS RECOMENDADOS
+✅ Agregar campo orden a DocumentTemplate
+✅ Crear seeders con documentos base para NSO, PSA y RSA
+✅ Validar que endpoint by-tramite-riesgo funcione correctamente
+✅ Implementar endpoint de validación de completitud
+✅ Documentar formato exacto de JSON para fieldsDefinition
+📞 COMUNICACIÓN FRONTEND-BACKEND
+Flujo completo esperado:
+Usuario clasifica producto → Frontend determina NSO/PSA/RSA
+Frontend consulta: GET /api/document-templates/by-tramite-riesgo?tipoTramite=REGISTRO&categoriaRiesgo=ALTO
+Backend retorna: Lista de plantillas ordenadas
+Frontend renderiza formularios dinámicamente
+Usuario llena datos → Frontend crea: POST /api/tramites/{id}/document-instances
+Usuario sube archivos → POST /api/tramites/{id}/document-instances/{docId}/upload
+Usuario radica → Frontend valida completitud y envía solicitud
+⚠️ PROBLEMAS ACTUALES A RESOLVER
+❌ Sin estos cambios, el sistema NO funcionará:
+Sin campo orden: Documentos se mostrarán desordenados
+Sin validación de JSON: Errores de parseo en frontend
+Sin datos semilla: No habrá documentos para mostrar
+Sin endpoint de validación: Radicación sin verificar completitud
+✅ CONFIRMACIÓN DE INTEGRACIÓN
+Una vez implementados los cambios, el backend debe retornar respuestas como:
+
+{
+  "id": 1,
+  "code": "FICHA_TECNICA",
+  "name": "Ficha Técnica Básica",
+  "description": "Información básica del producto",
+  "fieldsDefinition": "[{\"nombre\":\"nombre_producto\",\"tipo\":\"text\",\"requerido\":true}]",
+  "fileRules": "{\"maxSize\":10485760,\"allowedTypes\":[\"PDF\"],\"required\":false}",
+  "appliesToTramiteTypes": ["REGISTRO"],
+  "categoryRiesgo": "BAJO",
+  "required": true,
+  "orden": 2,
+  "version": "1.0",
+  "active": true
+}
+Fecha: 2025-01-14
+Versión Frontend: Angular 19.2
+IP Backend: http://35.238.19.224:8090
+Estado: ✅ Frontend listo - ⏳ Esperando ajustes en backend

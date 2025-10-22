@@ -2,9 +2,10 @@ package com.segar.backend.documentos.service;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.segar.backend.documentos.domain.*;
-import com.segar.backend.documentos.infrastructure.*;
-import com.segar.backend.documentos.api.dto.*;
+import com.segar.backend.documentos.api.dto.DocumentTemplateDTO;
+import com.segar.backend.documentos.domain.DocumentTemplate;
+import com.segar.backend.documentos.infrastructure.DocumentTemplateRepository;
+import com.segar.backend.security.service.AuthenticatedUserService;
 import com.segar.backend.shared.domain.CategoriaRiesgo;
 import com.segar.backend.shared.domain.TipoTramite;
 import lombok.RequiredArgsConstructor;
@@ -25,6 +26,7 @@ public class DocumentTemplateServiceImpl {
 
     private final DocumentTemplateRepository documentTemplateRepository;
     private final ObjectMapper objectMapper;
+    private final AuthenticatedUserService authenticatedUserService;
 
      
     public List<DocumentTemplateDTO> getAllActiveTemplates() {
@@ -70,6 +72,20 @@ public class DocumentTemplateServiceImpl {
                 .collect(Collectors.toList());
     }
 
+    /**
+     * Obtiene todas las categorías únicas de documentos
+     */
+    public List<String> getAllCategories() {
+        log.info("Obteniendo todas las categorías de documentos");
+        return documentTemplateRepository.findByActiveTrue()
+                .stream()
+                .map(DocumentTemplate::getCategory)
+                .filter(category -> category != null && !category.trim().isEmpty())
+                .distinct()
+                .sorted()
+                .collect(Collectors.toList());
+    }
+
      
     @Transactional
     public DocumentTemplateDTO createTemplate(DocumentTemplateDTO templateDTO) {
@@ -79,7 +95,7 @@ public class DocumentTemplateServiceImpl {
         validateTemplateDTO(templateDTO);
 
         DocumentTemplate template = convertToEntity(templateDTO);
-        template.setCreatedBy("SYSTEM"); // TODO: Obtener del contexto de seguridad
+        template.setCreatedBy(authenticatedUserService.getCurrentUsername());
 
         DocumentTemplate savedTemplate = documentTemplateRepository.save(template);
         log.info("Plantilla creada exitosamente con ID: {}", savedTemplate.getId());
@@ -189,6 +205,8 @@ public class DocumentTemplateServiceImpl {
                 .active(template.getActive())
                 .required(template.getRequired())
                 .displayOrder(template.getDisplayOrder())
+                .orden(template.getOrden() != null ? template.getOrden() : template.getDisplayOrder())
+                .category(template.getCategory())
                 .categoriaRiesgo(template.getCategoriaRiesgo())
                 .createdAt(template.getCreatedAt())
                 .updatedAt(template.getUpdatedAt())
@@ -224,6 +242,8 @@ public class DocumentTemplateServiceImpl {
         entity.setActive(dto.getActive());
         entity.setRequired(dto.getRequired());
         entity.setDisplayOrder(dto.getDisplayOrder());
+        entity.setOrden(dto.getOrden() != null ? dto.getOrden() : dto.getDisplayOrder());
+        entity.setCategory(dto.getCategory());
         entity.setCategoriaRiesgo(dto.getCategoriaRiesgo());
     }
 

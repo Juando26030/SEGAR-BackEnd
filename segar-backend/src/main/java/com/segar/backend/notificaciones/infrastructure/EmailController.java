@@ -2,13 +2,11 @@ package com.segar.backend.notificaciones.infrastructure;
 
 import com.segar.backend.notificaciones.api.dto.*;
 import com.segar.backend.notificaciones.domain.EmailAttachment;
+import com.segar.backend.notificaciones.domain.EmailReader;
 import com.segar.backend.notificaciones.domain.EmailSendingException;
 import com.segar.backend.notificaciones.service.EmailService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
-import io.swagger.v3.oas.annotations.media.Content;
-import io.swagger.v3.oas.annotations.media.Schema;
-import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -21,9 +19,9 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
-import org.springframework.web.multipart.MultipartFile;
 
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 
 /**
@@ -37,53 +35,103 @@ import java.util.Optional;
 public class EmailController {
 
     private final EmailService emailService;
+    private final EmailReader emailReader;
 
     @PostMapping("/send")
-    @Operation(summary = "Enviar correo electrónico",
-               description = "Envía un correo electrónico con soporte para múltiples destinatarios, archivos adjuntos e imágenes embebidas")
-    @ApiResponse(responseCode = "200", description = "Correo enviado exitosamente")
-    @ApiResponse(responseCode = "400", description = "Datos de entrada inválidos")
-    @ApiResponse(responseCode = "500", description = "Error interno del servidor")
-    public ResponseEntity<?> sendEmail(
-            @Parameter(description = "Datos del correo a enviar") @Valid @ModelAttribute SendEmailRequest request) {
+    @Operation(summary = "Enviar correo electrónico (único endpoint flexible)",
+               description = "Envía correos con todos los parámetros opcionales: destinatarios múltiples, CC, BCC, HTML, adjuntos")
+    public ResponseEntity<?> sendEmail(@Valid @RequestBody SendEmailRequest request) {
         try {
+            log.info("Enviando correo a: {}, asunto: {}", request.getToAddresses(), request.getSubject());
             EmailResponse response = emailService.sendEmail(request);
             return ResponseEntity.ok(response);
         } catch (EmailSendingException e) {
             log.error("Error enviando correo: {}", e.getMessage(), e);
+
+            // Detectar error de autenticación de Gmail
+            if (e.getMessage().contains("Authentication") || e.getMessage().contains("535")) {
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                    .body(new ErrorResponse("GMAIL_AUTH_ERROR",
+                        "Error de autenticación con Gmail. Necesitas usar una 'Contraseña de Aplicación' de Gmail, no tu contraseña normal. " +
+                        "Ve a: https://myaccount.google.com/apppasswords y genera una nueva contraseña de aplicación."));
+            }
+
             return ResponseEntity.badRequest()
                 .body(new ErrorResponse("EMAIL_SEND_ERROR", e.getMessage()));
         } catch (Exception e) {
             log.error("Error inesperado enviando correo: {}", e.getMessage(), e);
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                .body(new ErrorResponse("INTERNAL_ERROR", "Error interno del servidor"));
+                .body(new ErrorResponse("INTERNAL_ERROR", "Error interno del servidor: " + e.getMessage()));
+        }
+    }
+
+    @PostMapping("/inbox")
+    @Operation(summary = "Buscar correos con filtros avanzados (recomendado)",
+               description = "Busca TODOS los correos o con filtros específicos: texto general, remitente, asunto, fechas, estado de lectura, adjuntos. " +
+                           "Consulta la BD local (instantáneo). Usa /sync-async para actualizar desde el servidor.")
+    public ResponseEntity<Page<EmailResponse>> searchEmails(
+            @Parameter(description = "Filtros de búsqueda (todos opcionales)") @RequestBody(required = false) EmailSearchFilter searchFilter) {
+        try {
+            // Si no se envían filtros, crear uno vacío para traer todos los correos
+            if (searchFilter == null) {
+                searchFilter = EmailSearchFilter.builder()
+                    .page(0)
+                    .size(20)
+                    .sortBy("receivedDate")
+                    .sortDirection("DESC")
+                    .build();
+            }
+
+            log.info("Búsqueda de correos - Filtros: searchText='{}', fromAddress='{}', isRead={}",
+                searchFilter.getSearchText(), searchFilter.getFromAddress(), searchFilter.getIsRead());
+
+            Page<EmailResponse> emails = emailService.searchEmails(searchFilter);
+            return ResponseEntity.ok(emails);
+        } catch (Exception e) {
+            log.error("Error en búsqueda de correos: {}", e.getMessage(), e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
         }
     }
 
     @GetMapping("/inbox")
-    @Operation(summary = "Obtener correos del buzón de entrada",
-               description = "Obtiene correos del buzón de entrada con filtros y paginación")
+    @Operation(summary = "Obtener correos con parámetros GET (alternativa simple)",
+               description = "Obtiene correos usando parámetros de URL. Para filtros avanzados usa POST /inbox")
     public ResponseEntity<Page<EmailResponse>> getInboxEmails(
-            @Parameter(description = "Filtros de búsqueda") @ModelAttribute EmailFilterRequest filter) {
+            @RequestParam(required = false) String fromAddress,
+            @RequestParam(required = false) String subject,
+            @RequestParam(required = false) Boolean isRead,
+            @RequestParam(required = false) String searchText,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "20") int size,
+            @RequestParam(defaultValue = "receivedDate") String sortBy,
+            @RequestParam(defaultValue = "DESC") String sortDirection) {
         try {
-            Page<EmailResponse> emails = emailService.getInboxEmails(filter);
+            // Construir filtro desde parámetros GET
+            EmailSearchFilter searchFilter = EmailSearchFilter.builder()
+                .searchText(searchText)
+                .fromAddress(fromAddress)
+                .subject(subject)
+                .isRead(isRead)
+                .page(page)
+                .size(size)
+                .sortBy(sortBy)
+                .sortDirection(sortDirection)
+                .build();
+
+            Page<EmailResponse> emails = emailService.searchEmails(searchFilter);
             return ResponseEntity.ok(emails);
         } catch (Exception e) {
-            log.error("Error obteniendo correos del buzón: {}", e.getMessage(), e);
+            log.error("Error obteniendo correos: {}", e.getMessage(), e);
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
         }
     }
 
     @GetMapping("/{id}")
-    @Operation(summary = "Obtener correo específico", description = "Obtiene un correo específico por su ID")
+    @Operation(summary = "Obtener correo específico")
     public ResponseEntity<?> getEmailById(@PathVariable Long id) {
         try {
             Optional<EmailResponse> email = emailService.getEmailById(id);
-            if (email.isPresent()) {
-                return ResponseEntity.ok(email.get());
-            } else {
-                return ResponseEntity.notFound().build();
-            }
+            return email.map(ResponseEntity::ok).orElse(ResponseEntity.notFound().build());
         } catch (Exception e) {
             log.error("Error obteniendo correo por ID {}: {}", id, e.getMessage(), e);
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
@@ -92,7 +140,7 @@ public class EmailController {
     }
 
     @PutMapping("/{id}/mark-read")
-    @Operation(summary = "Marcar correo como leído", description = "Marca un correo específico como leído")
+    @Operation(summary = "Marcar correo como leído")
     public ResponseEntity<?> markEmailAsRead(@PathVariable Long id) {
         try {
             emailService.markEmailAsRead(id);
@@ -105,7 +153,7 @@ public class EmailController {
     }
 
     @PutMapping("/{id}/mark-unread")
-    @Operation(summary = "Marcar correo como no leído", description = "Marca un correo específico como no leído")
+    @Operation(summary = "Marcar correo como no leído")
     public ResponseEntity<?> markEmailAsUnread(@PathVariable Long id) {
         try {
             emailService.markEmailAsUnread(id);
@@ -118,7 +166,7 @@ public class EmailController {
     }
 
     @DeleteMapping("/{id}")
-    @Operation(summary = "Eliminar correo", description = "Elimina un correo específico")
+    @Operation(summary = "Eliminar correo")
     public ResponseEntity<?> deleteEmail(@PathVariable Long id) {
         try {
             emailService.deleteEmail(id);
@@ -131,7 +179,7 @@ public class EmailController {
     }
 
     @GetMapping("/sent")
-    @Operation(summary = "Obtener correos enviados", description = "Obtiene la lista de correos enviados con paginación")
+    @Operation(summary = "Obtener correos enviados")
     public ResponseEntity<Page<EmailResponse>> getSentEmails(
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "10") int size) {
@@ -146,7 +194,7 @@ public class EmailController {
     }
 
     @GetMapping("/unread-count")
-    @Operation(summary = "Obtener cantidad de correos no leídos", description = "Obtiene el número de correos no leídos")
+    @Operation(summary = "Obtener cantidad de correos no leídos")
     public ResponseEntity<Long> getUnreadEmailCount() {
         try {
             long count = emailService.getUnreadEmailCount();
@@ -158,11 +206,21 @@ public class EmailController {
     }
 
     @PostMapping("/sync")
-    @Operation(summary = "Sincronizar correos", description = "Sincroniza correos desde el servidor de correo")
+    @Operation(summary = "Sincronizar correos manualmente",
+               description = "Trae los correos nuevos del servidor. Usa este endpoint cuando quieras actualizar la lista de correos.")
     public ResponseEntity<?> synchronizeEmails() {
         try {
+            log.info("🔄 Sincronización manual solicitada");
+            long startTime = System.currentTimeMillis();
+
             emailService.synchronizeEmails();
-            return ResponseEntity.ok(new SuccessResponse("Sincronización completada exitosamente"));
+
+            long duration = System.currentTimeMillis() - startTime;
+            return ResponseEntity.ok(Map.of(
+                "status", "success",
+                "message", "Sincronización completada exitosamente",
+                "duration", duration + "ms"
+            ));
         } catch (Exception e) {
             log.error("Error sincronizando correos: {}", e.getMessage(), e);
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
@@ -170,11 +228,47 @@ public class EmailController {
         }
     }
 
+    @PostMapping("/sync-async")
+    @Operation(summary = "Sincronizar correos en segundo plano (rápido)",
+               description = "Inicia la sincronización en segundo plano y retorna inmediatamente. Ideal para no bloquear la UI.")
+    public ResponseEntity<?> synchronizeEmailsAsync() {
+        try {
+            log.info("🚀 Sincronización asíncrona solicitada");
+            emailService.synchronizeEmailsAsync();
+
+            return ResponseEntity.accepted().body(Map.of(
+                "status", "accepted",
+                "message", "Sincronización iniciada en segundo plano. Los correos aparecerán en breve."
+            ));
+        } catch (Exception e) {
+            log.error("Error iniciando sincronización asíncrona: {}", e.getMessage(), e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                .body(new ErrorResponse("SYNC_ERROR", "Error iniciando sincronización: " + e.getMessage()));
+        }
+    }
+
+    @GetMapping("/sync-status")
+    @Operation(summary = "Ver estadísticas de correos sincronizados")
+    public ResponseEntity<?> getSyncStatus() {
+        try {
+            long totalEmails = emailService.getTotalEmailCount();
+            long unreadEmails = emailService.getUnreadEmailCount();
+
+            return ResponseEntity.ok(Map.of(
+                "totalEmails", totalEmails,
+                "unreadEmails", unreadEmails,
+                "readEmails", totalEmails - unreadEmails,
+                "lastSync", "Ver logs del servidor"
+            ));
+        } catch (Exception e) {
+            log.error("Error obteniendo estado de sincronización: {}", e.getMessage(), e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
+        }
+    }
+
     @GetMapping("/{emailId}/attachments/{attachmentId}/download")
-    @Operation(summary = "Descargar archivo adjunto", description = "Descarga un archivo adjunto específico")
-    public ResponseEntity<byte[]> downloadAttachment(
-            @PathVariable Long emailId,
-            @PathVariable Long attachmentId) {
+    @Operation(summary = "Descargar archivo adjunto")
+    public ResponseEntity<byte[]> downloadAttachment(@PathVariable Long emailId, @PathVariable Long attachmentId) {
         try {
             Optional<EmailAttachment> attachmentOpt = emailService.getEmailAttachment(emailId, attachmentId);
 
@@ -186,9 +280,7 @@ public class EmailController {
                 headers.setContentDispositionFormData("attachment", attachment.getFileName());
                 headers.setContentLength(attachment.getFileSize());
 
-                return ResponseEntity.ok()
-                    .headers(headers)
-                    .body(attachment.getFileContent());
+                return ResponseEntity.ok().headers(headers).body(attachment.getFileContent());
             } else {
                 return ResponseEntity.notFound().build();
             }
@@ -199,17 +291,14 @@ public class EmailController {
     }
 
     @GetMapping("/{emailId}/attachments/{attachmentId}/preview")
-    @Operation(summary = "Previsualizar archivo adjunto", description = "Previsualiza un archivo adjunto (para imágenes)")
-    public ResponseEntity<byte[]> previewAttachment(
-            @PathVariable Long emailId,
-            @PathVariable Long attachmentId) {
+    @Operation(summary = "Previsualizar archivo adjunto")
+    public ResponseEntity<byte[]> previewAttachment(@PathVariable Long emailId, @PathVariable Long attachmentId) {
         try {
             Optional<EmailAttachment> attachmentOpt = emailService.getEmailAttachment(emailId, attachmentId);
 
             if (attachmentOpt.isPresent()) {
                 EmailAttachment attachment = attachmentOpt.get();
 
-                // Solo permitir previsualización de imágenes
                 if (!attachment.isImage()) {
                     return ResponseEntity.badRequest().build();
                 }
@@ -218,15 +307,43 @@ public class EmailController {
                 headers.setContentType(MediaType.parseMediaType(attachment.getContentType()));
                 headers.setContentLength(attachment.getFileSize());
 
-                return ResponseEntity.ok()
-                    .headers(headers)
-                    .body(attachment.getFileContent());
+                return ResponseEntity.ok().headers(headers).body(attachment.getFileContent());
             } else {
                 return ResponseEntity.notFound().build();
             }
         } catch (Exception e) {
             log.error("Error previsualizando archivo adjunto {}/{}: {}", emailId, attachmentId, e.getMessage(), e);
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
+        }
+    }
+
+    @GetMapping("/test-imap-connection")
+    @Operation(summary = "Probar conexión IMAP")
+    public ResponseEntity<?> testImapConnection() {
+        try {
+            boolean connected = emailReader.isConnected();
+            emailReader.synchronizeEmails();
+
+            return ResponseEntity.ok(Map.of(
+                "status", "success",
+                "message", "Conexión IMAP exitosa",
+                "connected", connected
+            ));
+        } catch (Exception e) {
+            String errorMessage = e.getMessage();
+            if (errorMessage.contains("AUTHENTICATIONFAILED")) {
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(Map.of(
+                    "status", "error",
+                    "errorType", "AUTHENTICATION_FAILED",
+                    "message", "Error de autenticación Gmail",
+                    "solution", "Necesitas configurar una contraseña de aplicación para Gmail"
+                ));
+            }
+
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(Map.of(
+                "status", "error",
+                "message", "Error de conexión: " + errorMessage
+            ));
         }
     }
 
@@ -240,7 +357,6 @@ public class EmailController {
             this.message = message;
         }
 
-        // Getters
         public String getErrorCode() { return errorCode; }
         public String getMessage() { return message; }
     }
@@ -252,7 +368,6 @@ public class EmailController {
             this.message = message;
         }
 
-        // Getter
         public String getMessage() { return message; }
     }
 }

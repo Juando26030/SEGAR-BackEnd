@@ -30,6 +30,8 @@ public class DocumentTemplateDTO {
     private Boolean active;
     private Boolean required;
     private Integer displayOrder;
+    private Integer orden; // Alias para frontend
+    private String category; // Categoría: basico, analisis, certificacion, estudios, otros
     private CategoriaRiesgo categoriaRiesgo;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;

@@ -1,0 +1,116 @@
+✅ INTEGRACIÓN FRONTEND-BACKEND COMPLETADA
+🎯 RESUMEN DE CAMBIOS
+Se ha eliminado completamente el código quemado del frontend y se ha integrado con el sistema de documentos dinámicos del backend.
+
+📁 ARCHIVOS CREADOS
+1. document-template.service.ts
+✅ Servicio para consultar plantillas de documentos desde el backend
+✅ Endpoints: /api/document-templates/by-tramite-riesgo
+✅ Convierte DTOs del backend al formato del frontend
+✅ Maneja parsing de JSON (fieldsDefinition y fileRules)
+2. document-instance.service.ts
+✅ Servicio para crear y gestionar instancias de documentos
+✅ Endpoints: /api/tramites/{id}/document-instances
+✅ Soporta borradores, envío y subida de archivos
+✅ Calcula progreso de completitud
+3. tramite-invima.service.ts (MODIFICADO)
+✅ Eliminados ~500 líneas de datos quemados
+✅ Ahora consulta al backend dinámicamente
+✅ Mantiene reglas de negocio INVIMA en frontend
+✅ Retorna Observable en lugar de datos estáticos
+🔧 ARCHIVOS MODIFICADOS
+registro-paso-tres.component.ts
+✅ Actualizado para manejar Observable
+✅ Subscribe a la respuesta del backend
+✅ Manejo de errores con feedback al usuario
+🚀 FLUJO ACTUAL
+Usuario clasifica producto en el frontend
+              ↓
+Frontend determina NSO/PSA/RSA (reglas de negocio)
+              ↓
+Frontend consulta backend:
+GET /api/document-templates/by-tramite-riesgo
+   ?tipoTramite=REGISTRO
+   &categoriaRiesgo=ALTO
+              ↓
+Backend retorna plantillas JSON
+              ↓
+Frontend parsea y renderiza formularios dinámicos
+              ↓
+Usuario llena formularios
+              ↓
+Frontend guarda en backend:
+POST /api/tramites/{id}/document-instances
+              ↓
+Usuario sube archivos (si aplica)
+              ↓
+Frontend valida completitud y radica
+⚠️ REQUERIMIENTOS PARA EL BACKEND
+CRÍTICO - Sin estos cambios NO funcionará:
+Agregar campo orden (Integer) a DocumentTemplate
+
+@Column(name = "orden")
+private Integer orden;
+Validar formato JSON de fieldsDefinition:
+
+[
+  {
+    "nombre": "nombre_comercial",
+    "tipo": "text",
+    "requerido": true,
+    "placeholder": "Ej: Galletas Integrales",
+    "descripcion": "Nombre comercial del producto"
+  }
+]
+Validar formato JSON de fileRules:
+
+{
+  "maxSize": 10485760,
+  "allowedTypes": ["PDF", "JPG", "PNG"],
+  "required": true
+}
+Endpoint debe soportar filtrado por tipoTramite Y categoriaRiesgo
+
+Crear datos semilla (seeders) con documentos base
+
+Ver archivo BACKEND_REQUIREMENTS.md para detalles completos.
+
+📊 DATOS ELIMINADOS DEL FRONTEND
+Se eliminaron los siguientes métodos con datos quemados:
+
+❌ obtenerDocumentosNSO() - ~120 líneas
+❌ obtenerDocumentosPSA() - ~150 líneas
+❌ obtenerDocumentosRSA() - ~200 líneas
+❌ obtenerDocumentosImportados() - ~80 líneas
+❌ obtenerDocumentosActualizacion() - ~50 líneas
+Total eliminado: ~600 líneas de código hardcodeado ✅
+
+✅ BENEFICIOS DE LA INTEGRACIÓN
+Flexibilidad: Documentos configurables desde BD
+Mantenibilidad: Cambios sin redespliegue de frontend
+Escalabilidad: Agregar documentos sin tocar código
+Trazabilidad: Versionado de plantillas
+Validación: Backend valida completitud
+🧪 PRÓXIMOS PASOS
+Frontend:
+✅ Servicios creados y conectados
+✅ Componente actualizado
+⏳ Pendiente: Testing con datos reales del backend
+Backend:
+⏳ Agregar campo orden
+⏳ Crear seeders con documentos base
+⏳ Validar endpoints funcionan correctamente
+⏳ Implementar endpoint de validación
+📞 CONTACTO
+Estado actual:
+
+Frontend: ✅ LISTO - Esperando datos del backend
+Backend: ⏳ PENDIENTE - Implementar requerimientos
+Archivos importantes:
+
+/BACKEND_REQUIREMENTS.md - Especificaciones detalladas
+/src/app/core/services/document-template.service.ts - Servicio principal
+/src/app/core/services/document-instance.service.ts - Gestión de documentos
+Fecha: 2025-01-14
+Versión: Angular 19.2
+Backend: http://35.238.19.224:8090

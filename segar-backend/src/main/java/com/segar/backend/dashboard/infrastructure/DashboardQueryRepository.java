@@ -84,8 +84,8 @@ public class DashboardQueryRepository {
 
     public Object[] getTramiteCompleto(Long tramiteId) {
         return em.createQuery(
-                "select t.id, t.radicadoNumber, t.submissionDate, t.procedureType, t.productName, t.currentStatus, t.lastUpdate " +
-                        "from Tramite t where t.id = :tramiteId",
+                "select t.id, t.radicadoNumber, t.submissionDate, t.procedureType, p.nombre, t.currentStatus, t.lastUpdate " +
+                        "from Tramite t join t.product p where t.id = :tramiteId",
                 Object[].class
         ).setParameter("tramiteId", tramiteId).getSingleResult();
     }
@@ -126,10 +126,10 @@ public class DashboardQueryRepository {
 
     public List<Object[]> buscarTramites(String query, int limit) {
         return em.createQuery(
-                        "select t.id, t.radicadoNumber, t.productName, t.procedureType, t.currentStatus, t.submissionDate, t.lastUpdate " +
-                                "from Tramite t where " +
+                        "select t.id, t.radicadoNumber, p.nombre, t.procedureType, t.currentStatus, t.submissionDate, t.lastUpdate " +
+                                "from Tramite t join t.product p where " +
                                 "lower(t.radicadoNumber) like lower(concat('%', :query, '%')) or " +
-                                "lower(t.productName) like lower(concat('%', :query, '%')) or " +
+                                "lower(p.nombre) like lower(concat('%', :query, '%')) or " +
                                 "lower(t.procedureType) like lower(concat('%', :query, '%')) " +
                                 "order by t.lastUpdate desc",
                         Object[].class
@@ -137,6 +137,9 @@ public class DashboardQueryRepository {
                 .setMaxResults(limit)
                 .getResultList();
     }
+
+
+
 
     public List<Object[]> buscarRegistrosSanitarios(String query, int limit) {
         return em.createQuery(
@@ -152,12 +155,13 @@ public class DashboardQueryRepository {
     }
     public int countTramitesBusqueda(String query) {
         return ((Number) em.createQuery(
-                "select count(t) from Tramite t where " +
+                "select count(t) from Tramite t join t.product p where " +
                         "lower(t.radicadoNumber) like lower(concat('%', :query, '%')) or " +
-                        "lower(t.productName) like lower(concat('%', :query, '%')) or " +
+                        "lower(p.nombre) like lower(concat('%', :query, '%')) or " +
                         "lower(t.procedureType) like lower(concat('%', :query, '%'))"
         ).setParameter("query", query).getSingleResult()).intValue();
     }
+
 
     public int countRegistrosBusqueda(String query) {
         return ((Number) em.createQuery(

@@ -153,8 +153,9 @@ public class UserManagementController {
     @GetMapping("/keycloak/{keycloakId}")
     public ResponseEntity<UserResponse> getUserByKeycloakId(@PathVariable String keycloakId) {
         Usuario usuario = usuarioService.findByKeycloakId(keycloakId);
-        return ResponseEntity.ok(mapUsuarioToResponse(usuario));
+        return ResponseEntity.ok(mapUsuarioToResponseSafe(usuario));
     }
+
 
     private UserResponse mapUsuarioToResponse(Usuario usuario) {
         // Consultar DIRECTAMENTE a Keycloak por username (fuente de verdad)

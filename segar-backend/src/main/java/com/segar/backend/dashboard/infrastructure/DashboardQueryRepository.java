@@ -371,4 +371,30 @@ public class DashboardQueryRepository {
                 Object[].class
         ).setParameter("tramiteId", tramiteId).getResultList();
     }
+
+    // ==================== REGISTROS POR USUARIO ====================
+
+    public long totalRegistrosByUsuario(Long usuarioId) {
+        return em.createQuery(
+                "select count(r) from RegistroSanitario r where r.tramiteId in (select t.id from Tramite t where t.usuario.id = :usuarioId)",
+                Long.class
+        ).setParameter("usuarioId", usuarioId).getSingleResult();
+    }
+
+    public long registrosVigentesByUsuario(Long usuarioId) {
+        return em.createQuery(
+                        "select count(r) from RegistroSanitario r where r.estado = :estado and r.tramiteId in (select t.id from Tramite t where t.usuario.id = :usuarioId)",
+                        Long.class
+                ).setParameter("estado", EstadoRegistro.VIGENTE)
+                .setParameter("usuarioId", usuarioId).getSingleResult();
+    }
+
+    public long registrosPorVencerByUsuario(Long usuarioId, LocalDateTime limite) {
+        return em.createQuery(
+                        "select count(r) from RegistroSanitario r where r.estado = :estado and r.fechaVencimiento <= :limite and r.tramiteId in (select t.id from Tramite t where t.usuario.id = :usuarioId)",
+                        Long.class
+                ).setParameter("estado", EstadoRegistro.VIGENTE)
+                .setParameter("limite", limite)
+                .setParameter("usuarioId", usuarioId).getSingleResult();
+    }
 }

@@ -21,6 +21,8 @@ public interface RegistroSanitarioRepository extends JpaRepository<RegistroSanit
 
     Optional<RegistroSanitario> findByResolucionId(Long resolucionId);
 
+    Optional<RegistroSanitario> findByTramiteId(Long tramiteId);
+
     List<RegistroSanitario> findByEmpresaId(Long empresaId);
 
     List<RegistroSanitario> findByProductoId(Long productoId);

@@ -503,6 +503,7 @@ public class DatabaseInit implements ApplicationRunner{
                 .fechaVencimiento(fechaVencimiento)
                 .productoId(productoId)
                 .empresaId(1L)
+                .tramiteId(tramite.getId())
                 .estado(EstadoRegistro.VIGENTE)
                 .resolucionId(resolucion.getId())
                 .documentoUrl("/documents/registro-sanitario-" + tramite.getId() + ".pdf")

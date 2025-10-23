@@ -75,13 +75,19 @@ public class DashboardService {
         List<ConteoPorEstadoDTO> porEstado = tramitesPorEstadoByUsuario(usuarioId);
         long reqPendientes = queryRepository.requerimientosPendientesByUsuario(usuarioId, 9999).size();
 
+        // Estadísticas de registros
+        long totalRegistros = queryRepository.totalRegistrosByUsuario(usuarioId);
+        long registrosVigentes = queryRepository.registrosVigentesByUsuario(usuarioId);
+        long registrosPorVencer = queryRepository.registrosPorVencerByUsuario(usuarioId, LocalDateTime.now().plusDays(30));
+        long registrosVencidos = totalRegistros - registrosVigentes;
+
         return DashboardResumenDTO.builder()
                 .totalTramites(totalTramites)
                 .tramitesPorEstado(porEstado)
-                .totalRegistros(0)
-                .registrosVigentes(0)
-                .registrosPorVencer(0)
-                .registrosVencidos(0)
+                .totalRegistros(totalRegistros)
+                .registrosVigentes(registrosVigentes)
+                .registrosPorVencer(registrosPorVencer)
+                .registrosVencidos(registrosVencidos)
                 .requerimientosPendientes(reqPendientes)
                 .build();
     }

@@ -100,6 +100,7 @@ public class DatabaseInit implements ApplicationRunner{
         admin.setRole("Administrador");
         admin.setActivo(true);
         admin.setFechaRegistro(LocalDateTime.now());
+        admin.setEmpresaId(1L);
 
         // Usuario Empleado
         Usuario empleado = new Usuario();
@@ -121,6 +122,7 @@ public class DatabaseInit implements ApplicationRunner{
         empleado.setRole("Empleado");
         empleado.setActivo(true);
         empleado.setFechaRegistro(LocalDateTime.now());
+        empleado.setEmpresaId(1L);
 
         usuarioRepository.saveAll(List.of(admin, empleado));
         System.out.println("✅ Usuarios iniciales creados: admin.segar y empleado.segar");

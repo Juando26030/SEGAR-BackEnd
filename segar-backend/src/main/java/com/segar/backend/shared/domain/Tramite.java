@@ -1,5 +1,6 @@
 package com.segar.backend.shared.domain;
 
+import com.segar.backend.gestionUsuarios.domain.Usuario;
 import com.segar.backend.tramites.domain.EventoTramite;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
@@ -22,8 +23,14 @@ public class Tramite {
     private String radicadoNumber;
     private LocalDate submissionDate;
     private String procedureType;
+
     @OneToOne
     private Producto product;
+
+    @ManyToOne
+    @JoinColumn(name = "usuario_id")
+    private Usuario usuario;
+
     @Enumerated(EnumType.STRING)
     private EstadoTramite currentStatus;
     private LocalDateTime lastUpdate;

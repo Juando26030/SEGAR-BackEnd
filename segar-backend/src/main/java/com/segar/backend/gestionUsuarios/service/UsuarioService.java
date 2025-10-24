@@ -2,9 +2,12 @@ package com.segar.backend.gestionUsuarios.service;
 
 import com.segar.backend.gestionUsuarios.domain.Usuario;
 import com.segar.backend.gestionUsuarios.infrastructure.repository.UsuarioRepository;
+import com.segar.backend.shared.domain.Empresa;
+import com.segar.backend.shared.infrastructure.EmpresaRepository;
 import org.keycloak.representations.idm.UserRepresentation;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -18,6 +21,8 @@ public class UsuarioService {
 
     private static final Logger logger = LoggerFactory.getLogger(UsuarioService.class);
 
+    @Autowired
+    private EmpresaRepository empresaRepository;  // Agrega si no existe
     private final UsuarioRepository usuarioRepository;
     private final KeycloakUserService keycloakUserService;
 
@@ -25,6 +30,22 @@ public class UsuarioService {
                           KeycloakUserService keycloakUserService) {
         this.usuarioRepository = usuarioRepository;
         this.keycloakUserService = keycloakUserService;
+    }
+
+    public List<Usuario> getUsuariosByEmpresaId(Long empresaId) {
+        return usuarioRepository.findByEmpresaId(empresaId);
+    }
+
+    public Empresa getEmpresaByUsuarioId(Long usuarioId) {
+        Usuario usuario = usuarioRepository.findById(usuarioId)
+                .orElseThrow(() -> new RuntimeException("Usuario no encontrado con ID: " + usuarioId));
+
+        if (usuario.getEmpresaId() == null) {
+            throw new RuntimeException("El usuario no tiene una empresa asociada");
+        }
+
+        return empresaRepository.findById(usuario.getEmpresaId())
+                .orElseThrow(() -> new RuntimeException("Empresa no encontrada con ID: " + usuario.getEmpresaId()));
     }
 
     @Transactional

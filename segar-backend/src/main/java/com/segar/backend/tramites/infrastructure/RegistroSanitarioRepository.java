@@ -1,6 +1,7 @@
 package com.segar.backend.tramites.infrastructure;
 
 
+import com.segar.backend.shared.domain.EstadoRegistro;
 import com.segar.backend.tramites.domain.RegistroSanitario;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
@@ -20,6 +21,8 @@ public interface RegistroSanitarioRepository extends JpaRepository<RegistroSanit
 
     Optional<RegistroSanitario> findByResolucionId(Long resolucionId);
 
+    Optional<RegistroSanitario> findByTramiteId(Long tramiteId);
+
     List<RegistroSanitario> findByEmpresaId(Long empresaId);
 
     List<RegistroSanitario> findByProductoId(Long productoId);
@@ -31,5 +34,13 @@ public interface RegistroSanitarioRepository extends JpaRepository<RegistroSanit
 
     @Query("SELECT COUNT(r) FROM RegistroSanitario r WHERE YEAR(r.fechaExpedicion) = :year")
     Long countByYear(@Param("year") int year);
+
+    Long countByEmpresaId(Long empresaId);
+
+    Long countByEmpresaIdAndEstado(Long empresaId, EstadoRegistro estado);
+
+    @Query("SELECT COUNT(r) FROM RegistroSanitario r WHERE r.empresaId = :empresaId AND r.estado = 'VIGENTE' AND r.fechaVencimiento <= :limite")
+    Long countByEmpresaIdAndVencimiento(@Param("empresaId") Long empresaId, @Param("limite") LocalDateTime limite);
+
 
 }

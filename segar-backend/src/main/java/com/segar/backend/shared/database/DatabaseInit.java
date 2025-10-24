@@ -100,6 +100,7 @@ public class DatabaseInit implements ApplicationRunner{
         admin.setRole("Administrador");
         admin.setActivo(true);
         admin.setFechaRegistro(LocalDateTime.now());
+        admin.setEmpresaId(1L);
 
         // Usuario Empleado
         Usuario empleado = new Usuario();
@@ -121,6 +122,7 @@ public class DatabaseInit implements ApplicationRunner{
         empleado.setRole("Empleado");
         empleado.setActivo(true);
         empleado.setFechaRegistro(LocalDateTime.now());
+        empleado.setEmpresaId(1L);
 
         usuarioRepository.saveAll(List.of(admin, empleado));
         System.out.println("✅ Usuarios iniciales creados: admin.segar y empleado.segar");
@@ -210,6 +212,17 @@ public class DatabaseInit implements ApplicationRunner{
         t6.setCurrentStatus(EstadoTramite.APROBADO);
         t6.setLastUpdate(LocalDateTime.now().minusDays(1800)); // Hace 5 años aprox
         tramiteRepo.save(t6);
+
+        // Después de crear los trámites, asignarles usuarios
+        t1.setUsuario(admin);
+        t2.setUsuario(empleado);
+        t3.setUsuario(admin);
+        t4.setUsuario(empleado);
+        t5.setUsuario(admin);
+        t6.setUsuario(empleado);
+
+        tramiteRepo.saveAll(List.of(t1, t2, t3, t4, t5, t6));
+
 
         // EVENTOS PARA TRÁMITE 1 (APROBADO)
         crearEventosCompletos(t1, eventoRepo, tramiteRepo);
@@ -492,6 +505,7 @@ public class DatabaseInit implements ApplicationRunner{
                 .fechaVencimiento(fechaVencimiento)
                 .productoId(productoId)
                 .empresaId(1L)
+                .tramiteId(tramite.getId())
                 .estado(EstadoRegistro.VIGENTE)
                 .resolucionId(resolucion.getId())
                 .documentoUrl("/documents/registro-sanitario-" + tramite.getId() + ".pdf")

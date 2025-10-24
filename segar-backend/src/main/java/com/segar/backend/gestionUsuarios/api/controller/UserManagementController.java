@@ -7,6 +7,7 @@ import com.segar.backend.gestionUsuarios.api.dto.UserResponse;
 import com.segar.backend.gestionUsuarios.domain.Usuario;
 import com.segar.backend.gestionUsuarios.service.KeycloakUserService;
 import com.segar.backend.gestionUsuarios.service.UsuarioService;
+import com.segar.backend.shared.domain.Empresa;
 import jakarta.validation.Valid;
 import org.keycloak.representations.idm.UserRepresentation;
 import org.springframework.http.ResponseEntity;
@@ -29,6 +30,19 @@ public class UserManagementController {
                                     KeycloakUserService keycloakUserService) {
         this.usuarioService = usuarioService;
         this.keycloakUserService = keycloakUserService;
+    }
+
+
+    @GetMapping("/empresa/{empresaId}")
+    public ResponseEntity<List<Usuario>> getUsuariosByEmpresaId(@PathVariable Long empresaId) {
+        List<Usuario> usuarios = usuarioService.getUsuariosByEmpresaId(empresaId);
+        return ResponseEntity.ok(usuarios);
+    }
+
+    @GetMapping("/{usuarioId}/empresa")
+    public ResponseEntity<Empresa> getEmpresaByUsuarioId(@PathVariable Long usuarioId) {
+        Empresa empresa = usuarioService.getEmpresaByUsuarioId(usuarioId);
+        return ResponseEntity.ok(empresa);
     }
 
     @PreAuthorize("hasRole('ADMIN')")
@@ -153,8 +167,9 @@ public class UserManagementController {
     @GetMapping("/keycloak/{keycloakId}")
     public ResponseEntity<UserResponse> getUserByKeycloakId(@PathVariable String keycloakId) {
         Usuario usuario = usuarioService.findByKeycloakId(keycloakId);
-        return ResponseEntity.ok(mapUsuarioToResponse(usuario));
+        return ResponseEntity.ok(mapUsuarioToResponseSafe(usuario));
     }
+
 
     private UserResponse mapUsuarioToResponse(Usuario usuario) {
         // Consultar DIRECTAMENTE a Keycloak por username (fuente de verdad)

@@ -81,6 +81,10 @@ public class Usuario {
     @Column(name = "activo")
     private Boolean activo = true;
 
+    @Column(name = "empresa_id", nullable = false)
+    private Long empresaId;
+
+
     // ========== Métodos Auxiliares ==========
     @PrePersist
     public void prePersist() {

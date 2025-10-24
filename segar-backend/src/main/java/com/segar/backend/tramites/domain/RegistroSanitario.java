@@ -39,6 +39,9 @@ public class RegistroSanitario {
     @Column(nullable = false)
     private Long empresaId;
 
+    @Column(nullable = false)
+    private Long tramiteId;
+
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
     private EstadoRegistro estado;

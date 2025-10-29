@@ -55,4 +55,9 @@ public class ProductoController {
     public Producto updateProducto(@PathVariable String id, @RequestBody Producto producto) {
         return productoService.updateProducto(Long.parseLong(id), producto);
     }
+
+    @GetMapping("/empresa/{empresaId}/sin-tramites")
+    public List<Producto> getProductosByEmpresaIdNotAssociatedWithTramites(@PathVariable Long empresaId) {
+        return productoService.getProductosByEmpresaIdNotAssociatedWithTramites(empresaId);
+    }
 }

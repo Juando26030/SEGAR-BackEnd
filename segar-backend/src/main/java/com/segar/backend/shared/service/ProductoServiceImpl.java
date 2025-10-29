@@ -10,7 +10,7 @@ import org.springframework.stereotype.Service;
 
 
 @Service
-public class ProductoServiceImpl{
+public class ProductoServiceImpl {
 
     @Autowired
     private ProductoRepository productoRepository;
@@ -42,5 +42,10 @@ public class ProductoServiceImpl{
             producto.setEmpresaId(updatedProducto.getEmpresaId());
             return productoRepository.save(producto);
         }).orElse(null);
+    }
+
+    public List<Producto> getProductosByEmpresaIdNotAssociatedWithTramites(Long empresaId) {
+        return productoRepository.findByEmpresaIdAndNotAssociatedWithTramites(empresaId);
+
     }
 }

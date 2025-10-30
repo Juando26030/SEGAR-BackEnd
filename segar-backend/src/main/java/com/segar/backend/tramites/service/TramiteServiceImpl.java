@@ -3,6 +3,8 @@ package com.segar.backend.tramites.service;
 
 
 
+import com.segar.backend.gestionUsuarios.domain.Usuario;
+import com.segar.backend.gestionUsuarios.infrastructure.repository.UsuarioRepository;
 import com.segar.backend.shared.domain.EstadoTramite;
 import com.segar.backend.shared.domain.Producto;
 import com.segar.backend.shared.domain.EstadoRequerimiento;
@@ -59,6 +61,9 @@ public class TramiteServiceImpl{
 
     @Autowired
     private RegistroSanitarioRepository registroSanitarioRepository;
+
+    @Autowired
+    private UsuarioRepository usuarioRepo;
 
 
     public TrackingDTO getTracking(Long tramiteId) {
@@ -209,6 +214,8 @@ public class TramiteServiceImpl{
         tramite.setProcedureType(solicitudTramite.getProcedureType());
         Producto p = productoRepo.findById(solicitudTramite.getProductoId()).orElseThrow();
         tramite.setProduct(p);
+        Usuario u = usuarioRepo.findById(solicitudTramite.getUsuarioId()).orElseThrow();
+        tramite.setUsuario(u);
         tramite.setCurrentStatus(EstadoTramite.RADICADO);
         tramite.setLastUpdate(LocalDateTime.now());
         List<EventoTramite> eventos = new ArrayList<>(List.of(

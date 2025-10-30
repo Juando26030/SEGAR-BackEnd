@@ -28,36 +28,36 @@ public class TramitesController {
     private final TramiteServiceImpl service;
 
     @GetMapping("/all")
-    public List<Tramite> obtenerTramites() { 
-        return service.getAllTramites(); 
+    public List<Tramite> obtenerTramites() {
+        return service.getAllTramites();
     }
 
     @PostMapping("/create")
     public Tramite createTramite(@RequestBody RadicacionSolicitudDTO tramite) {
         return service.createTramite(tramite);
     }
-    
 
-    @GetMapping("/tracking")
+
+    @GetMapping("/{id}/tracking")
     public TrackingDTO tracking(@PathVariable Long id) { return service.getTracking(id); }
 
-    @GetMapping("/timeline")
+    @GetMapping("/{id}/timeline")
     public List<TimelineEventDTO> timeline(@PathVariable Long id) { return service.getTimeline(id); }
 
-    @PostMapping("/refresh-status")
+    @PostMapping("/{id}/refresh-status")
     public TrackingDTO refresh(@PathVariable Long id) { return service.refreshStatus(id); }
 
-    @GetMapping("/requerimientos")
+    @GetMapping("/{id}/requerimientos")
     public List<RequirementDTO> requerimientos(@PathVariable Long id, @RequestParam(required = false) String estado) {
         return service.getRequerimientos(id, estado);
     }
 
-    @GetMapping("/requerimientos/{reqId}")
+    @GetMapping("/{id}/requerimientos/{reqId}")
     public RequirementDTO requerimiento(@PathVariable Long id, @PathVariable Long reqId) {
         return service.getRequerimiento(id, reqId);
     }
 
-    @PostMapping(value = "/requerimientos/{reqId}/respuesta", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    @PostMapping(value = "/{id}/requerimientos/{reqId}/respuesta", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     @ResponseStatus(HttpStatus.NO_CONTENT)
     public void responder(
             @PathVariable Long id,
@@ -68,21 +68,21 @@ public class TramitesController {
         service.responderRequerimiento(id, reqId, mensaje, archivos != null ? archivos : List.of());
     }
 
-    @GetMapping("/notificaciones")
+    @GetMapping("/{id}/notificaciones")
     public List<NotificationDTO> notificaciones(@PathVariable Long id) {
         return service.getNotificaciones(id);
     }
 
-    @PostMapping("/notificaciones/{notifId}/read")
+    @PostMapping("/{id}/notificaciones/{notifId}/read")
     @ResponseStatus(HttpStatus.NO_CONTENT)
     public void marcarLeida(@PathVariable Long id, @PathVariable Long notifId) {
         service.marcarLeida(id, notifId);
     }
 
-    @GetMapping("/notificaciones/settings")
+    @GetMapping("/{id}/notificaciones/settings")
     public NotificationSettingsDTO getSettings(@PathVariable Long id) { return service.getSettings(id); }
 
-    @PutMapping("/notificaciones/settings")
+    @PutMapping("/{id}/notificaciones/settings")
     @ResponseStatus(HttpStatus.NO_CONTENT)
     public void updateSettings(@PathVariable Long id, @RequestBody @Valid NotificationSettingsDTO dto) {
         service.updateSettings(id, dto);

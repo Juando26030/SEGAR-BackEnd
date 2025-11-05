@@ -17,6 +17,7 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.server.ResponseStatusException;
+import org.springframework.web.bind.annotation.*;
 
 
 
@@ -52,6 +53,44 @@ public class ProductoController {
             System.out.println("Product: " + producto.getNombre());
         }
         return productos;
+    }
+
+    /**
+     * Busca productos por texto
+     * @param query Texto de búsqueda (nombre, descripción, referencia o fabricante)
+     * @return Lista de productos que coinciden con el texto
+     */
+    @GetMapping("/buscar")
+    public List<Producto> buscarProductos(@RequestParam(required = false) String query) {
+        System.out.println("Buscando productos con query: " + query);
+        List<Producto> productos = productoService.buscarProductos(query);
+        System.out.println("Número de productos encontrados: " + productos.size());
+        return productos;
+    }
+
+    /**
+     * Busca productos por empresa
+     * @param empresaId ID de la empresa
+     * @return Lista de productos de la empresa
+     */
+    @GetMapping("/empresa/{empresaId}")
+    public List<Producto> getProductosByEmpresa(@PathVariable Long empresaId) {
+        System.out.println("Buscando productos de la empresa: " + empresaId);
+        return productoService.getProductosByEmpresaId(empresaId);
+    }
+
+    /**
+     * Busca productos por texto y empresa
+     * @param query Texto de búsqueda
+     * @param empresaId ID de la empresa
+     * @return Lista de productos que coinciden
+     */
+    @GetMapping("/buscar/empresa/{empresaId}")
+    public List<Producto> buscarProductosPorEmpresa(
+            @RequestParam(required = false) String query,
+            @PathVariable Long empresaId) {
+        System.out.println("Buscando productos con query: " + query + " para empresa: " + empresaId);
+        return productoService.buscarProductosPorEmpresa(query, empresaId);
     }
 
     @PostMapping("/create")

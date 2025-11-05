@@ -44,6 +44,10 @@ public class ProductoServiceImpl {
         }).orElse(null);
     }
 
+    public List<Producto> getProductosByEmpresaId(Long empresaId) {
+        return productoRepository.findByEmpresaId(empresaId);
+    }
+
     public List<Producto> getProductosByEmpresaIdNotAssociatedWithTramites(Long empresaId) {
         return productoRepository.findByEmpresaIdAndNotAssociatedWithTramites(empresaId);
 

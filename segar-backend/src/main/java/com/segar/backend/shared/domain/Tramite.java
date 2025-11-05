@@ -31,6 +31,9 @@ public class Tramite {
     @JoinColumn(name = "usuario_id")
     private Usuario usuario;
 
+    @Column(name = "empresa_id")
+    private Long empresaId;
+
     @Enumerated(EnumType.STRING)
     private EstadoTramite currentStatus;
     private LocalDateTime lastUpdate;

@@ -2,6 +2,7 @@ package com.segar.backend.gestionUsuarios.service;
 
 import com.segar.backend.gestionUsuarios.domain.Usuario;
 import com.segar.backend.gestionUsuarios.infrastructure.repository.UsuarioRepository;
+import com.segar.backend.security.service.AuthenticatedUserService;
 import com.segar.backend.shared.domain.Empresa;
 import com.segar.backend.shared.infrastructure.EmpresaRepository;
 import org.keycloak.representations.idm.UserRepresentation;
@@ -22,7 +23,11 @@ public class UsuarioService {
     private static final Logger logger = LoggerFactory.getLogger(UsuarioService.class);
 
     @Autowired
-    private EmpresaRepository empresaRepository;  // Agrega si no existe
+    private EmpresaRepository empresaRepository;
+
+    @Autowired
+    private AuthenticatedUserService authenticatedUserService;
+
     private final UsuarioRepository usuarioRepository;
     private final KeycloakUserService keycloakUserService;
 
@@ -62,7 +67,11 @@ public class UsuarioService {
         );
         logger.info("🟢 Usuario creado en Keycloak con ID: {} y roles asignados", keycloakId);
 
-        // 2. Crear registro local con toda la información de negocio
+        // 2. Obtener empresaId del admin que está creando el usuario
+        Long empresaId = authenticatedUserService.getCurrentUserEmpresaId();
+        logger.info("🏢 Asignando empresa ID: {} al nuevo usuario", empresaId);
+
+        // 3. Crear registro local con toda la información de negocio
         Usuario usuario = new Usuario();
 
         // Vinculación con Keycloak
@@ -89,13 +98,16 @@ public class UsuarioService {
         usuario.setEmployeeId(employeeId);
         usuario.setRole(role);
 
+        // Multi-tenancy: Asignar empresa del admin que crea
+        usuario.setEmpresaId(empresaId);
+
         // Auditoría
         usuario.setFechaRegistro(LocalDateTime.now());
         usuario.setActivo(true);
 
         Usuario savedUsuario = usuarioRepository.save(usuario);
-        logger.info("✅ Usuario guardado en H2 con ID local: {} y keycloakId: {}",
-                savedUsuario.getId(), savedUsuario.getKeycloakId());
+        logger.info("✅ Usuario guardado en H2 con ID local: {}, keycloakId: {}, empresaId: {}",
+                savedUsuario.getId(), savedUsuario.getKeycloakId(), savedUsuario.getEmpresaId());
 
         return savedUsuario;
     }

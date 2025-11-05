@@ -11,4 +11,13 @@ import java.util.List;
 
 public interface TramiteRepository extends JpaRepository<Tramite, Long> {
 
+    // Métodos para multi-tenancy
+    List<Tramite> findByEmpresaId(Long empresaId);
+
+    List<Tramite> findByEmpresaIdOrderByLastUpdateDesc(Long empresaId);
+
+    @Query("SELECT t FROM Tramite t WHERE t.empresaId = :empresaId AND t.currentStatus = :status")
+    List<Tramite> findByEmpresaIdAndStatus(@Param("empresaId") Long empresaId,
+                                           @Param("status") com.segar.backend.shared.domain.EstadoTramite status);
+
 }

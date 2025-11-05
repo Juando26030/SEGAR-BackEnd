@@ -207,6 +207,11 @@ public class TramiteServiceImpl{
         return tramiteRepo.findAll();
     }
 
+    // Nuevo método para multi-tenancy
+    public List<Tramite> getTramitesByEmpresaId(Long empresaId) {
+        return tramiteRepo.findByEmpresaIdOrderByLastUpdateDesc(empresaId);
+    }
+
     public Tramite createTramite(RadicacionSolicitudDTO solicitudTramite) {
         Tramite tramite = new Tramite();
         tramite.setRadicadoNumber(solicitudTramite.getRadicadoNumber());
@@ -216,6 +221,10 @@ public class TramiteServiceImpl{
         tramite.setProduct(p);
         Usuario u = usuarioRepo.findById(solicitudTramite.getUsuarioId()).orElseThrow();
         tramite.setUsuario(u);
+
+        // Asignar empresaId del usuario
+        tramite.setEmpresaId(u.getEmpresaId());
+
         tramite.setCurrentStatus(EstadoTramite.RADICADO);
         tramite.setLastUpdate(LocalDateTime.now());
         List<EventoTramite> eventos = new ArrayList<>(List.of(

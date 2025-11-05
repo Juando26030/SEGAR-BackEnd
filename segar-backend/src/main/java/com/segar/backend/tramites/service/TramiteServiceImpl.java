@@ -79,7 +79,7 @@ public class TramiteServiceImpl{
         return eventoRepo.findByTramiteIdOrderByOrdenAsc(tramiteId).stream()
                 .map(e -> new TimelineEventDTO(
                         e.getId(), e.getTitle(), e.getDescription(),
-                        e.getDate() != null ? e.getDate().format(DateTimeFormatter.ofPattern("d 'de' MMMM 'de' yyyy", new Locale("es","CO"))) : "Pendiente",
+                        e.getDate() != null ? e.getDate().format(DateTimeFormatter.ofPattern("d 'de' MMMM 'de' yyyy", Locale.forLanguageTag("es-CO"))) : "Pendiente",
                         e.isCompleted(), e.isCurrentEvent()
                 )).toList();
     }
@@ -151,7 +151,7 @@ public class TramiteServiceImpl{
         return notifRepo.findByTramiteIdOrderByDateDesc(tramiteId).stream()
                 .map(n -> new NotificationDTO(
                         n.getId(), n.getType().name().toLowerCase(), n.getTitle(), n.getMessage(),
-                        n.getDate().format(DateTimeFormatter.ofPattern("d 'de' MMMM 'de' yyyy", new Locale("es","CO"))),
+                        n.getDate().format(DateTimeFormatter.ofPattern("d 'de' MMMM 'de' yyyy", Locale.forLanguageTag("es-CO"))),
                         n.isRead()
                 )).toList();
     }
@@ -199,7 +199,7 @@ public class TramiteServiceImpl{
                     case RESPONDIDO -> "Respondido";
                     case VENCIDO -> "Vencido";
                 },
-                r.getDate() != null ? r.getDate().format(DateTimeFormatter.ofPattern("d 'de' MMMM 'de' yyyy", new Locale("es","CO"))) : ""
+                r.getDate() != null ? r.getDate().format(DateTimeFormatter.ofPattern("d 'de' MMMM 'de' yyyy", Locale.forLanguageTag("es-CO"))) : ""
         );
     }
 

@@ -26,6 +26,7 @@ public class CalendarioController {
     private final EventoService eventoService;
     private final CalendarioService calendarioService;
 
+    // Endpoints generales
     @GetMapping("/eventos")
     public ResponseEntity<List<EventoDTO>> obtenerTodosLosEventos() {
         List<EventoDTO> eventos = eventoService.obtenerTodosLosEventos();
@@ -40,6 +41,63 @@ public class CalendarioController {
         return ResponseEntity.ok(eventos);
     }
 
+    // NUEVO: Endpoints por empresa
+    @GetMapping("/empresa/{empresaId}/eventos/{mes}/{anio}")
+    public ResponseEntity<List<EventoDTO>> obtenerEventosPorMesYEmpresa(
+            @PathVariable Long empresaId,
+            @PathVariable int mes,
+            @PathVariable int anio) {
+        List<EventoDTO> eventos = eventoService.obtenerEventosPorMesYEmpresa(mes, anio, empresaId);
+        return ResponseEntity.ok(eventos);
+    }
+
+    @GetMapping("/empresa/{empresaId}/eventos")
+    public ResponseEntity<List<EventoDTO>> obtenerEventosPorEmpresa(@PathVariable Long empresaId) {
+        List<EventoDTO> eventos = eventoService.obtenerEventosPorEmpresa(empresaId);
+        return ResponseEntity.ok(eventos);
+    }
+
+    @GetMapping("/empresa/{empresaId}/estadisticas")
+    public ResponseEntity<EstadisticasCalendarioDTO> obtenerEstadisticasPorEmpresa(@PathVariable Long empresaId) {
+        EstadisticasCalendarioDTO estadisticas = calendarioService.obtenerEstadisticasPorEmpresa(empresaId);
+        return ResponseEntity.ok(estadisticas);
+    }
+
+    @GetMapping("/empresa/{empresaId}/eventos/proximos")
+    public ResponseEntity<List<EventoDTO>> obtenerProximosEventosPorEmpresa(@PathVariable Long empresaId) {
+        List<EventoDTO> proximosEventos = eventoService.obtenerProximosTresEventosPorEmpresa(empresaId);
+        return ResponseEntity.ok(proximosEventos);
+    }
+
+    // NUEVO: Endpoints por usuario
+    @GetMapping("/usuario/{usuarioId}/eventos/{mes}/{anio}")
+    public ResponseEntity<List<EventoDTO>> obtenerEventosPorMesYUsuario(
+            @PathVariable Long usuarioId,
+            @PathVariable int mes,
+            @PathVariable int anio) {
+        List<EventoDTO> eventos = eventoService.obtenerEventosPorMesYUsuario(mes, anio, usuarioId);
+        return ResponseEntity.ok(eventos);
+    }
+
+    @GetMapping("/usuario/{usuarioId}/eventos")
+    public ResponseEntity<List<EventoDTO>> obtenerEventosPorUsuario(@PathVariable Long usuarioId) {
+        List<EventoDTO> eventos = eventoService.obtenerEventosPorUsuario(usuarioId);
+        return ResponseEntity.ok(eventos);
+    }
+
+    @GetMapping("/usuario/{usuarioId}/estadisticas")
+    public ResponseEntity<EstadisticasCalendarioDTO> obtenerEstadisticasPorUsuario(@PathVariable Long usuarioId) {
+        EstadisticasCalendarioDTO estadisticas = calendarioService.obtenerEstadisticasPorUsuario(usuarioId);
+        return ResponseEntity.ok(estadisticas);
+    }
+
+    @GetMapping("/usuario/{usuarioId}/eventos/proximos")
+    public ResponseEntity<List<EventoDTO>> obtenerProximosEventosPorUsuario(@PathVariable Long usuarioId) {
+        List<EventoDTO> proximosEventos = eventoService.obtenerProximosTresEventosPorUsuario(usuarioId);
+        return ResponseEntity.ok(proximosEventos);
+    }
+
+    // Endpoints de CRUD
     @GetMapping("/eventos/{id}")
     public ResponseEntity<EventoDTO> obtenerEventoPorId(@PathVariable Long id) {
         EventoDTO evento = eventoService.obtenerEventoPorId(id);
@@ -72,12 +130,7 @@ public class CalendarioController {
         return ResponseEntity.ok(eventoCompletado);
     }
 
-    @GetMapping("/eventos/empresa/{empresaId}")
-    public ResponseEntity<List<EventoDTO>> obtenerEventosPorEmpresa(@PathVariable Long empresaId) {
-        List<EventoDTO> eventos = eventoService.obtenerEventosPorEmpresa(empresaId);
-        return ResponseEntity.ok(eventos);
-    }
-
+    // Endpoints de metadatos
     @GetMapping("/estadisticas")
     public ResponseEntity<EstadisticasCalendarioDTO> obtenerEstadisticas() {
         EstadisticasCalendarioDTO estadisticas = calendarioService.obtenerEstadisticas();
@@ -113,5 +166,5 @@ public class CalendarioController {
         List<EventoDTO> proximosEventos = eventoService.obtenerProximosTresEventos();
         return ResponseEntity.ok(proximosEventos);
     }
-
 }
+

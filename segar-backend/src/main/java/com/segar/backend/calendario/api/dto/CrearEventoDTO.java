@@ -33,5 +33,6 @@ public class CrearEventoDTO {
 
     private Long empresaId;
     private Long tramiteId;
+    private Long usuarioId;
     private Long documentoId;
 }

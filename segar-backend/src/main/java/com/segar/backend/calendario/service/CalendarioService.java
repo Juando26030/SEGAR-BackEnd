@@ -30,6 +30,28 @@ public class CalendarioService {
                 .build();
     }
 
+    //Estadísticas por empresa
+    public EstadisticasCalendarioDTO obtenerEstadisticasPorEmpresa(Long empresaId) {
+        return EstadisticasCalendarioDTO.builder()
+                .totalEventos(eventoRepository.findByEmpresaId(empresaId).size())
+                .eventosCriticos(eventoRepository.countEventosCriticosByEmpresaId(empresaId))
+                .eventosCompletados(eventoRepository.countByEmpresaIdAndEstado(empresaId, EstadoEvento.COMPLETADO))
+                .eventosVencidos(eventoRepository.countEventosVencidosByEmpresaId(empresaId))
+                .eventosActivos(eventoRepository.countByEmpresaIdAndEstado(empresaId, EstadoEvento.ACTIVO))
+                .build();
+    }
+
+    // Estadísticas por usuario
+    public EstadisticasCalendarioDTO obtenerEstadisticasPorUsuario(Long usuarioId) {
+        return EstadisticasCalendarioDTO.builder()
+                .totalEventos(eventoRepository.findByUsuarioId(usuarioId).size())
+                .eventosCriticos(eventoRepository.countEventosCriticosByUsuarioId(usuarioId))
+                .eventosCompletados(eventoRepository.countByUsuarioIdAndEstado(usuarioId, EstadoEvento.COMPLETADO))
+                .eventosVencidos(eventoRepository.countEventosVencidosByUsuarioId(usuarioId))
+                .eventosActivos(eventoRepository.countByUsuarioIdAndEstado(usuarioId, EstadoEvento.ACTIVO))
+                .build();
+    }
+
     public List<TipoEvento> obtenerTiposEvento() {
         return Arrays.asList(TipoEvento.values());
     }

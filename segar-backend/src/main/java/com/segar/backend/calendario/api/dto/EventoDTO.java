@@ -25,6 +25,7 @@ public class EventoDTO {
     private EstadoEvento estado;
     private Long empresaId;
     private Long tramiteId;
+    private Long usuarioId;
     private Long documentoId;
     private LocalDateTime fechaCreacion;
     private LocalDateTime fechaActualizacion;

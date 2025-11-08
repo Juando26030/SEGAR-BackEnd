@@ -52,6 +52,9 @@ public class Evento {
     @Column(name = "empresa_id")
     private Long empresaId;
 
+    @Column(name = "usuario_id")
+    private Long usuarioId;
+
     @Column(name = "tramite_id")
     private Long tramiteId;
 

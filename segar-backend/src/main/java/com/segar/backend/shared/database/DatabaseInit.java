@@ -63,6 +63,9 @@ public class DatabaseInit implements ApplicationRunner{
     @Autowired
     private UsuarioRepository usuarioRepository;
 
+    @Autowired
+    private ClasificacionProductoRepository clasificacionProductoRepository;
+
     @Override
     public void run(ApplicationArguments args) throws Exception {
 
@@ -222,6 +225,80 @@ public class DatabaseInit implements ApplicationRunner{
         t6.setUsuario(empleado);
 
         tramiteRepo.saveAll(List.of(t1, t2, t3, t4, t5, t6));
+
+        // En DatabaseInit.java, después de guardar los productos
+
+        // Crear clasificaciones para cada producto
+        ClasificacionProducto clasificacion1 = ClasificacionProducto.builder()
+            .productoId(producto1.getId())
+            .categoria("Lácteos y derivados")
+            .nivelRiesgo(ClasificacionProducto.NivelRiesgo.MEDIO)
+            .poblacionObjetivo("Población general adulta")
+            .procesamiento("Pasteurización")
+            .tipoAccion(ClasificacionProducto.TipoAccion.REGISTRO)
+            .esImportado(false)
+            .fechaClasificacion(LocalDateTime.now())
+            .build();
+
+        ClasificacionProducto clasificacion2 = ClasificacionProducto.builder()
+            .productoId(producto2.getId())
+            .categoria("Bebidas no alcohólicas")
+            .nivelRiesgo(ClasificacionProducto.NivelRiesgo.BAJO)
+            .poblacionObjetivo("Población general adulta")
+            .procesamiento("Tratamiento térmico")
+            .tipoAccion(ClasificacionProducto.TipoAccion.REGISTRO)
+            .esImportado(false)
+            .fechaClasificacion(LocalDateTime.now())
+            .build();
+
+        ClasificacionProducto clasificacion3 = ClasificacionProducto.builder()
+            .productoId(producto3.getId())
+            .categoria("Cereales y productos de panadería")
+            .nivelRiesgo(ClasificacionProducto.NivelRiesgo.BAJO)
+            .poblacionObjetivo("Población general adulta")
+            .procesamiento("Horneado")
+            .tipoAccion(ClasificacionProducto.TipoAccion.REGISTRO)
+            .esImportado(false)
+            .fechaClasificacion(LocalDateTime.now())
+            .build();
+
+        ClasificacionProducto clasificacion4 = ClasificacionProducto.builder()
+            .productoId(producto4.getId())
+            .categoria("Alimentos de origen animal")
+            .nivelRiesgo(ClasificacionProducto.NivelRiesgo.ALTO)
+            .poblacionObjetivo("Población general adulta")
+            .procesamiento("Refrigeración")
+            .tipoAccion(ClasificacionProducto.TipoAccion.REGISTRO)
+            .esImportado(false)
+            .fechaClasificacion(LocalDateTime.now())
+            .build();
+
+        ClasificacionProducto clasificacion5 = ClasificacionProducto.builder()
+            .productoId(producto5.getId())
+            .categoria("Frutas y verduras procesadas")
+            .nivelRiesgo(ClasificacionProducto.NivelRiesgo.BAJO)
+            .poblacionObjetivo("Población general adulta")
+            .procesamiento("Deshidratación")
+            .tipoAccion(ClasificacionProducto.TipoAccion.REGISTRO)
+            .esImportado(false)
+            .fechaClasificacion(LocalDateTime.now())
+            .build();
+
+        ClasificacionProducto clasificacion6 = ClasificacionProducto.builder()
+            .productoId(producto6.getId())
+            .categoria("Condimentos y especias")
+            .nivelRiesgo(ClasificacionProducto.NivelRiesgo.BAJO)
+            .poblacionObjetivo("Población general adulta")
+            .procesamiento("Molienda y mezcla")
+            .tipoAccion(ClasificacionProducto.TipoAccion.REGISTRO)
+            .esImportado(false)
+            .fechaClasificacion(LocalDateTime.now())
+            .build();
+
+        clasificacionProductoRepository.saveAll(List.of(
+            clasificacion1, clasificacion2, clasificacion3,
+            clasificacion4, clasificacion5, clasificacion6
+        ));
 
 
         // EVENTOS PARA TRÁMITE 1 (APROBADO)

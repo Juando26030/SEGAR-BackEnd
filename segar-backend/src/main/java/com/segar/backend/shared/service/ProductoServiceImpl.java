@@ -48,4 +48,13 @@ public class ProductoServiceImpl {
         return productoRepository.findByEmpresaIdAndNotAssociatedWithTramites(empresaId);
 
     }
+
+    public List<Producto> getProductosConRegistrosSanitariosVigentes() {
+        return productoRepository.findProductosConRegistrosSanitariosVigentes();
+    }
+
+    public List<Producto> getProductosConRegistrosSanitariosVigentesByEmpresaId(Long empresaId) {
+        return productoRepository.findProductosConRegistrosSanitariosVigentesByEmpresaId(empresaId);
+    }
+
 }

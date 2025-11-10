@@ -60,4 +60,15 @@ public class ProductoController {
     public List<Producto> getProductosByEmpresaIdNotAssociatedWithTramites(@PathVariable Long empresaId) {
         return productoService.getProductosByEmpresaIdNotAssociatedWithTramites(empresaId);
     }
+
+    @GetMapping("/con-registro-vigente")
+    public List<Producto> getProductosConRegistrosSanitariosVigentes() {
+        return productoService.getProductosConRegistrosSanitariosVigentes();
+    }
+
+    @GetMapping("/empresa/{empresaId}/con-registro-vigente")
+    public List<Producto> getProductosConRegistrosSanitariosVigentesByEmpresaId(@PathVariable Long empresaId) {
+        return productoService.getProductosConRegistrosSanitariosVigentesByEmpresaId(empresaId);
+    }
+
 }

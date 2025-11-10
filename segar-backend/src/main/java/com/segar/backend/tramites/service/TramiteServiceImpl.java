@@ -63,6 +63,10 @@ public class TramiteServiceImpl{
     private RegistroSanitarioRepository registroSanitarioRepository;
 
     @Autowired
+    private ClasificacionProductoService clasificacionProductoService;
+
+
+    @Autowired
     private UsuarioRepository usuarioRepo;
 
 
@@ -225,6 +229,12 @@ public class TramiteServiceImpl{
                 crearEvento(tramite, 4, "Evaluación Técnica", "Pendiente análisis técnico", null, false, false)
         ));
         tramite.setEventos(eventos);
+        if (solicitudTramite.getClasificacion() != null) {
+            clasificacionProductoService.guardarClasificacion(
+                    tramite.getProduct().getId(),
+                    solicitudTramite.getClasificacion()
+            );
+        }
         tramiteRepo.save(tramite);
         eventoRepo.saveAll(eventos);
         return tramiteRepo.save(tramite);

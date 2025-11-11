@@ -28,6 +28,10 @@ public class Documento {
 
     private String bucketName;
     private String objectName;
+    private String nombreEmpresa;
+    private String nombreProducto;
+    private String idDocumento;
+    private String nombreArchivo;
     private String contentType;
     private LocalDateTime uploadedAt;
 
@@ -36,10 +40,14 @@ public class Documento {
     @JoinColumn(name = "tramite_id")
     private Tramite tramite;
 
-    public Documento(String bucketName, String objectName, String contentType) {
+    public Documento(String bucketName, String objectName, String nombreEmpresa, String nombreProducto, String idDocumento, String nombreArchivo, String contentType) {
         this.bucketName = bucketName;
         this.objectName = objectName;
         this.contentType = contentType;
+        this.nombreEmpresa = nombreEmpresa;
+        this.nombreProducto = nombreProducto;
+        this.idDocumento = idDocumento;
+        this.nombreArchivo = nombreArchivo;
         this.uploadedAt = LocalDateTime.now();
     }
 }

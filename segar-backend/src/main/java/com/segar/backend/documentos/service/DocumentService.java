@@ -73,4 +73,9 @@ public class DocumentService {
 
         return signedUrl.toString();
     }
+
+    public List<Documento> getDocumentosByTramiteId(String tramiteId_string) {
+        Long tramiteId = Long.parseLong(tramiteId_string);
+        return documentoRepository.findByTramiteId(tramiteId);
+    }
 }

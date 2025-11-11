@@ -16,6 +16,7 @@ import com.segar.backend.documentos.service.DocumentService;
 
 
 
+
 @RestController
 @RequestMapping("/api/documentos")
 @RequiredArgsConstructor
@@ -69,6 +70,11 @@ public class DocumentosController {
             request.getObjectName(),
             request.getContentType()
         );
+    }
+    
+    @GetMapping("/tramite/{id}")
+    public List<Documento> getDocumetsByTramiteId(@PathVariable("id") String id) {
+        return documentService.getDocumentosByTramiteId(id);
     }
     
 

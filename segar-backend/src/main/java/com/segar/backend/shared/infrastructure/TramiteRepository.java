@@ -19,4 +19,11 @@ public interface TramiteRepository extends JpaRepository<Tramite, Long> {
     WHERE p.nombre = :nombre
     """, nativeQuery = true)
     Optional<Tramite> findByNombreProducto(@Param("nombre") String nombre);
+
+    @Query("SELECT t FROM Tramite t WHERE t.product.empresaId = :empresaId")
+    List<Tramite> findByEmpresaId(@Param("empresaId") Long empresaId);
+
+    List<Tramite> findByUsuarioId(Long usuarioId);
+
+
 }

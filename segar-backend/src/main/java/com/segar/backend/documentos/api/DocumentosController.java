@@ -7,9 +7,13 @@ import java.util.List;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 
+import com.segar.backend.documentos.domain.ClasificationRequest;
 import com.segar.backend.documentos.domain.Documento;
 import com.segar.backend.documentos.domain.SignedUrlRequest;
 import com.segar.backend.documentos.service.DocumentService;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+
 
 
 
@@ -75,6 +79,13 @@ public class DocumentosController {
     @GetMapping("/tramite/{id}")
     public List<Documento> getDocumetsByTramiteId(@PathVariable("id") String id) {
         return documentService.getDocumentosByTramiteId(id);
+    }
+    
+    @PostMapping("/clasificacion")
+    public String getDocumentosPorClasificacion(@RequestBody ClasificationRequestDTO request) {
+        //TODO: process POST request
+        
+        return entity;
     }
     
 

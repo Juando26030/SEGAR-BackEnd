@@ -81,12 +81,5 @@ public class DocumentosController {
         return documentService.getDocumentosByTramiteId(id);
     }
     
-    @PostMapping("/clasificacion")
-    public String getDocumentosPorClasificacion(@RequestBody ClasificationRequestDTO request) {
-        //TODO: process POST request
-        
-        return entity;
-    }
-    
 
 }

@@ -138,7 +138,7 @@ public class DocumentTemplateSeeder {
                 "Especificaciones técnicas de las materias primas utilizadas",
                 "basico",
                 CategoriaRiesgo.IIA,
-                false,
+                true,
                 9,
                 buildFieldsDefinitionMateriasPrimas(),
                 buildFileRulesMultiple()
@@ -150,7 +150,7 @@ public class DocumentTemplateSeeder {
                 "Diagrama del proceso de fabricación del producto",
                 "otros",
                 CategoriaRiesgo.IIA,
-                false,
+                true,
                 10,
                 buildFieldsDefinitionDiagramaFlujo(),
                 buildFileRulesImages()
@@ -187,7 +187,7 @@ public class DocumentTemplateSeeder {
                 "Certificados de calidad de materias primas e insumos críticos",
                 "certificacion",
                 CategoriaRiesgo.III,
-                false,
+                true,
                 13,
                 buildFieldsDefinitionCertificadosProveedores(),
                 buildFileRulesMultiple()
@@ -199,7 +199,7 @@ public class DocumentTemplateSeeder {
                 "Manual de aseguramiento de calidad de la empresa",
                 "certificacion",
                 CategoriaRiesgo.III,
-                false,
+                true,
                 14,
                 buildFieldsDefinitionManualCalidad(),
                 buildFileRulesPDF()
@@ -211,7 +211,7 @@ public class DocumentTemplateSeeder {
                 "Validación de procesos críticos de manufactura",
                 "estudios",
                 CategoriaRiesgo.III,
-                false,
+                true,
                 15,
                 buildFieldsDefinitionEstudiosValidacion(),
                 buildFileRulesMultiple()
@@ -736,7 +736,7 @@ public class DocumentTemplateSeeder {
             {
               "maxSize": 10485760,
               "allowedTypes": ["PDF", "JPG", "PNG", "DOCX"],
-              "required": false
+              "required": true
             }
             """;
     }

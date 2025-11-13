@@ -87,4 +87,15 @@ public class TramitesController {
     public void updateSettings(@PathVariable Long id, @RequestBody @Valid NotificationSettingsDTO dto) {
         service.updateSettings(id, dto);
     }
+
+    @GetMapping("/empresa/{empresaId}")
+    public List<Tramite> getTramitesByEmpresaId(@PathVariable Long empresaId) {
+        return service.getTramitesByEmpresaId(empresaId);
+    }
+
+    @GetMapping("/usuario/{usuarioId}")
+    public List<Tramite> getTramitesByUsuarioId(@PathVariable Long usuarioId) {
+        return service.getTramitesByUsuarioId(usuarioId);
+    }
+
 }

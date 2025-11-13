@@ -71,4 +71,9 @@ public class ProductoController {
         return productoService.getProductosConRegistrosSanitariosVigentesByEmpresaId(empresaId);
     }
 
+    @GetMapping("/empresa/{empresaId}")
+    public List<Producto> getProductosByEmpresaId(@PathVariable Long empresaId) {
+        return productoService.getProductosByEmpresaId(empresaId);
+    }
+
 }

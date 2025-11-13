@@ -251,4 +251,13 @@ public class TramiteServiceImpl{
         evento.setOrden(orden);
         return evento;
     }
+
+    public List<Tramite> getTramitesByEmpresaId(Long empresaId) {
+        return tramiteRepo.findByEmpresaId(empresaId);
+    }
+
+    public List<Tramite> getTramitesByUsuarioId(Long usuarioId) {
+        return tramiteRepo.findByUsuarioId(usuarioId);
+    }
+
 }

@@ -395,11 +395,28 @@ public class KeycloakUserService {
 
     public Optional<UserRepresentation> getUserByUsername(String username) {
         try {
+            logger.info("🔍 ========== BUSCANDO USUARIO EN KEYCLOAK ==========");
+            logger.info("🔍 Username buscado: '{}'", username);
+            logger.info("🔍 Realm: {}", realm);
+
             List<UserRepresentation> users = getUsersResource().search(username, true);
 
+            logger.info("🔍 Usuarios encontrados en búsqueda: {}", users.size());
+
             if (users.isEmpty()) {
-                logger.info("Usuario no encontrado en Keycloak: {}", username);
+                logger.warn("⚠️ Usuario NO encontrado en Keycloak: '{}'", username);
+                logger.warn("⚠️ Posibles causas:");
+                logger.warn("   1. El usuario no existe en el realm '{}'", realm);
+                logger.warn("   2. El username es diferente en Keycloak");
+                logger.warn("   3. Problema de permisos del admin de Keycloak");
                 return Optional.empty();
+            }
+
+            // Log de todos los usuarios encontrados
+            for (int i = 0; i < users.size(); i++) {
+                UserRepresentation u = users.get(i);
+                logger.info("   [{}] Username: '{}', ID: {}, Enabled: {}",
+                    i, u.getUsername(), u.getId(), u.isEnabled());
             }
 
             // Buscar coincidencia exacta
@@ -408,17 +425,26 @@ public class KeycloakUserService {
                     .findFirst();
 
             if (exactMatch.isPresent()) {
+                logger.info("✅ Coincidencia EXACTA encontrada: Username='{}', ID={}",
+                    exactMatch.get().getUsername(), exactMatch.get().getId());
                 return exactMatch;
             }
 
             // Si no hay coincidencia exacta, retornar el primero
+            logger.warn("⚠️ NO se encontró coincidencia exacta. Retornando el primero: '{}'",
+                users.get(0).getUsername());
             return Optional.of(users.get(0));
 
         } catch (ForbiddenException e) {
-            logger.warn("⚠️ Error 403 al buscar usuario en Keycloak: {}. Permisos insuficientes.", username);
+            logger.error("❌ Error 403 (FORBIDDEN) al buscar usuario en Keycloak: '{}'", username);
+            logger.error("❌ Permisos insuficientes. Verificar configuración del admin de Keycloak.");
+            logger.error("❌ Detalles: {}", e.getMessage());
             return Optional.empty();
         } catch (Exception e) {
-            logger.error("❌ Error inesperado al buscar usuario en Keycloak: {}", e.getMessage());
+            logger.error("❌ Error INESPERADO al buscar usuario en Keycloak: '{}'", username);
+            logger.error("❌ Tipo de error: {}", e.getClass().getSimpleName());
+            logger.error("❌ Mensaje: {}", e.getMessage());
+            logger.error("❌ Stack trace:", e);
             return Optional.empty();
         }
     }

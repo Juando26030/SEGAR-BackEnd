@@ -171,34 +171,64 @@ public class UsuarioService {
 
     @Transactional
     public void updatePassword(Long id, String newPassword, boolean temporary) {
-        logger.info("🔵 Actualizando contraseña del usuario con ID: {}", id);
+        logger.info("🔑 ========== ACTUALIZAR CONTRASEÑA ==========");
+        logger.info("🔑 Usuario ID (BD): {}", id);
+        logger.info("🔑 Password temporal: {}", temporary);
 
         Usuario usuario = findById(id);
 
+        logger.info("📋 Usuario encontrado en BD:");
+        logger.info("   - ID: {}", usuario.getId());
+        logger.info("   - Username: '{}'", usuario.getUsername());
+        logger.info("   - Email: {}", usuario.getEmail());
+        logger.info("   - Keycloak ID (BD): {}", usuario.getKeycloakId());
+        logger.info("   - Activo: {}", usuario.getActivo());
+        logger.info("   - Empresa ID: {}", usuario.getEmpresaId());
+
         // Buscar usuario DIRECTAMENTE en Keycloak por username
-        logger.info("🔍 Consultando directamente a Keycloak para usuario: {}", usuario.getUsername());
+        logger.info("🔍 Consultando directamente a Keycloak para usuario: '{}'", usuario.getUsername());
         Optional<UserRepresentation> kcUserOpt = keycloakUserService.getUserByUsername(usuario.getUsername());
 
         if (kcUserOpt.isEmpty()) {
-            logger.error("❌ Usuario '{}' no encontrado en Keycloak. Debe recrearse.", usuario.getUsername());
+            logger.error("❌ ========== ERROR: USUARIO NO ENCONTRADO EN KEYCLOAK ==========");
+            logger.error("❌ Username buscado: '{}'", usuario.getUsername());
+            logger.error("❌ Keycloak ID almacenado en BD: {}", usuario.getKeycloakId());
+            logger.error("❌ POSIBLES CAUSAS:");
+            logger.error("   1. Usuario fue eliminado de Keycloak pero no de la BD");
+            logger.error("   2. Username en BD no coincide con el de Keycloak");
+            logger.error("   3. Usuario en realm diferente");
+            logger.error("   4. Problemas de permisos del admin de Keycloak");
+            logger.error("❌ SOLUCIÓN: Eliminar usuario de BD y recrearlo, o verificar Keycloak manualmente");
+            logger.error("❌ ==============================================================");
             throw new RuntimeException("El usuario '" + usuario.getUsername() +
                     "' no existe en Keycloak. Por favor, elimínelo de la base de datos y vuélvalo a crear.");
         }
 
         String keycloakIdReal = kcUserOpt.get().getId();
-        logger.info("✅ Usuario encontrado en Keycloak con ID: {}", keycloakIdReal);
+        logger.info("✅ Usuario encontrado en Keycloak:");
+        logger.info("   - Keycloak ID: {}", keycloakIdReal);
+        logger.info("   - Username: '{}'", kcUserOpt.get().getUsername());
+        logger.info("   - Email: {}", kcUserOpt.get().getEmail());
+        logger.info("   - Enabled: {}", kcUserOpt.get().isEnabled());
 
         // Sincronizar keycloakId si cambió
         if (!keycloakIdReal.equals(usuario.getKeycloakId())) {
-            logger.warn("⚠️ keycloakId desincronizado. Actualizando: {} -> {}",
-                    usuario.getKeycloakId(), keycloakIdReal);
+            logger.warn("⚠️ keycloakId DESINCRONIZADO:");
+            logger.warn("   - BD: {}", usuario.getKeycloakId());
+            logger.warn("   - Keycloak: {}", keycloakIdReal);
+            logger.warn("   - Actualizando BD con el ID correcto...");
             usuario.setKeycloakId(keycloakIdReal);
             usuarioRepository.save(usuario);
+            logger.info("✅ keycloakId actualizado en BD");
         }
 
+        logger.info("🔐 Actualizando contraseña en Keycloak...");
         keycloakUserService.updatePassword(keycloakIdReal, newPassword, temporary);
 
-        logger.info("✅ Contraseña actualizada en Keycloak para usuario: {}", usuario.getUsername());
+        logger.info("✅ ========== CONTRASEÑA ACTUALIZADA EXITOSAMENTE ==========");
+        logger.info("✅ Usuario: '{}'", usuario.getUsername());
+        logger.info("✅ Keycloak ID: {}", keycloakIdReal);
+        logger.info("✅ ==========================================================");
     }
 
     @Transactional

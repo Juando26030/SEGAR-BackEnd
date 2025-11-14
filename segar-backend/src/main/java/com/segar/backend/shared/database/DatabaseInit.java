@@ -10,6 +10,7 @@ import com.segar.backend.tramites.domain.*;
 import com.segar.backend.tramites.infrastructure.*;
 import com.segar.backend.shared.infrastructure.*;
 import com.segar.backend.calendario.infrastructure.EventoRepository;
+import com.segar.backend.documentos.domain.Documento;
 import com.segar.backend.calendario.domain.*;
 import com.segar.backend.gestionUsuarios.domain.Usuario;
 import com.segar.backend.gestionUsuarios.infrastructure.repository.UsuarioRepository;
@@ -227,6 +228,44 @@ public class DatabaseInit implements ApplicationRunner{
         tramiteRepo.saveAll(List.of(t1, t2, t3, t4, t5, t6));
 
         // En DatabaseInit.java, después de guardar los productos
+        Documento doc1 = new Documento(
+            "segar-documents", 
+            "Lácteos Premium S.A.S./Leche Deslactosada UHT/FICHA_TECNICA_BASICA/FICHA_TECNICA_LECHE_V1.pdf", 
+            "Lácteos Premium S.A.S.", 
+            "Leche Deslactosada UHT", 
+            "FICHA_TECNICA_BASICA", 
+            "FICHA_TECNICA_LECHE_V1.pdf", 
+            "application/pdf"
+        );
+        Documento doc2 = new Documento(
+            "segar-documents", 
+            "Lácteos Premium S.A.S./Leche Deslactosada UHT/CERTIFICADO_EXISTENCIA/CERTIFICADO_EXISTENCIA_V1.pdf", 
+            "Lácteos Premium S.A.S.", 
+            "Leche Deslactosada UHT", 
+            "CERTIFICADO_EXISTENCIA", 
+            "CERTIFICADO_EXISTENCIA_V1.pdf", 
+            "application/pdf"
+        );
+        Documento doc3 = new Documento(
+            "segar-documents", 
+            "Lácteos Premium S.A.S./Leche Deslactosada UHT/RUT_EMPRESA/RUT_EMPRESA_V1.pdf", 
+            "Lácteos Premium S.A.S.", 
+            "Leche Deslactosada UHT", 
+            "RUT_EMPRESA", 
+            "RUT_EMPRESA_V1.pdf", 
+            "application/pdf"
+        );
+
+        // Asociar documentos al trámite t2
+        doc1.setTramite(t2);
+        doc2.setTramite(t2);
+        doc3.setTramite(t2);
+        t2.addDocumento(doc1);
+        t2.addDocumento(doc2);
+        t2.addDocumento(doc3);
+        //documentoRepository.saveAll(List.of(doc1, doc2, doc3));
+        tramiteRepo.save(t2);
+
 
         // Crear clasificaciones para cada producto
         ClasificacionProducto clasificacion1 = ClasificacionProducto.builder()

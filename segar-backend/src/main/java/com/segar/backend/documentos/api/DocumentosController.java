@@ -11,8 +11,7 @@ import org.springframework.web.bind.annotation.*;
 import com.segar.backend.documentos.domain.Documento;
 import com.segar.backend.documentos.domain.SignedUrlRequest;
 import com.segar.backend.documentos.service.DocumentService;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
+
 
 
 
@@ -80,6 +79,23 @@ public class DocumentosController {
     public List<Documento> getDocumetsByTramiteId(@PathVariable("id") String id) {
         return documentService.getDocumentosByTramiteId(id);
     }
+
+    @GetMapping("/descargar")
+    public String getMethodName() {
+        try {
+            String signedUrl = documentService.generateGETSignedUrl(
+                "segar-documents",
+                "Lácteos Premium S.A.S./leche/PLAN_HACCP/CC1015998003.pdf",
+                "application/pdf"
+            );
+            documentService.descargarYGuardar(signedUrl, "CC1015998003.pdf");
+        } catch (Exception e) {
+            // TODO Auto-generated catch block
+            e.printStackTrace();
+        }
+        return new String("SE DESCARGO EL DOC");
+    }
+    
     
 
 }

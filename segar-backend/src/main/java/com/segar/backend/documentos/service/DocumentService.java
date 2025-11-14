@@ -1,6 +1,13 @@
 package com.segar.backend.documentos.service;
 
+import java.io.IOException;
+import java.io.InputStream;
+import java.net.HttpURLConnection;
 import java.net.URL;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.nio.file.StandardCopyOption;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 
@@ -78,4 +85,31 @@ public class DocumentService {
         Long tramiteId = Long.parseLong(tramiteId_string);
         return documentoRepository.findByTramiteId(tramiteId);
     }
+
+    public void descargarYGuardar(String urlArchivo, String nombreArchivo ) throws IOException {
+
+        // Carpeta donde se guardarán los archivos
+        String directorioDestino = "data/files";
+
+        // Crear carpeta si no existe
+        Path carpeta = Paths.get(directorioDestino);
+        if (!Files.exists(carpeta)) {
+            Files.createDirectories(carpeta);
+        }
+
+        // Ruta final del archivo
+        Path archivoDestino = carpeta.resolve(nombreArchivo);
+
+        // Abrir la conexión a la URL
+        URL url = new URL(urlArchivo);
+        HttpURLConnection conexion = (HttpURLConnection) url.openConnection();
+        conexion.setRequestMethod("GET");
+
+        try (InputStream inputStream = conexion.getInputStream()) {
+            Files.copy(inputStream, archivoDestino, StandardCopyOption.REPLACE_EXISTING);
+        }
+
+        System.out.println("Archivo descargado en: " + archivoDestino.toAbsolutePath());
+    }
+
 }

@@ -10,7 +10,7 @@ import org.springframework.stereotype.Service;
 
 
 @Service
-public class ProductoServiceImpl{
+public class ProductoServiceImpl {
 
     @Autowired
     private ProductoRepository productoRepository;
@@ -80,4 +80,18 @@ public class ProductoServiceImpl{
         }
         return productoRepository.buscarProductosPorEmpresa(query.trim(), empresaId);
     }
+
+    public List<Producto> getProductosByEmpresaIdNotAssociatedWithTramites(Long empresaId) {
+        return productoRepository.findByEmpresaIdAndNotAssociatedWithTramites(empresaId);
+
+    }
+
+    public List<Producto> getProductosConRegistrosSanitariosVigentes() {
+        return productoRepository.findProductosConRegistrosSanitariosVigentes();
+    }
+
+    public List<Producto> getProductosConRegistrosSanitariosVigentesByEmpresaId(Long empresaId) {
+        return productoRepository.findProductosConRegistrosSanitariosVigentesByEmpresaId(empresaId);
+    }
+
 }

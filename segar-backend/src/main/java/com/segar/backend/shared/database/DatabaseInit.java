@@ -10,6 +10,7 @@ import com.segar.backend.tramites.domain.*;
 import com.segar.backend.tramites.infrastructure.*;
 import com.segar.backend.shared.infrastructure.*;
 import com.segar.backend.calendario.infrastructure.EventoRepository;
+import com.segar.backend.documentos.domain.Documento;
 import com.segar.backend.calendario.domain.*;
 import com.segar.backend.gestionUsuarios.domain.Usuario;
 import com.segar.backend.gestionUsuarios.infrastructure.repository.UsuarioRepository;
@@ -62,6 +63,9 @@ public class DatabaseInit implements ApplicationRunner{
 
     @Autowired
     private UsuarioRepository usuarioRepository;
+
+    @Autowired
+    private ClasificacionProductoRepository clasificacionProductoRepository;
 
     @Override
     public void run(ApplicationArguments args) throws Exception {
@@ -215,13 +219,125 @@ public class DatabaseInit implements ApplicationRunner{
 
         // Después de crear los trámites, asignarles usuarios
         t1.setUsuario(admin);
-        t2.setUsuario(empleado);
+        t2.setUsuario(admin);
         t3.setUsuario(admin);
         t4.setUsuario(empleado);
         t5.setUsuario(admin);
         t6.setUsuario(empleado);
 
         tramiteRepo.saveAll(List.of(t1, t2, t3, t4, t5, t6));
+
+        // En DatabaseInit.java, después de guardar los productos
+        Documento doc1 = new Documento(
+            "segar-documents", 
+            "Lácteos Premium S.A.S./Leche Deslactosada UHT/FICHA_TECNICA_BASICA/FICHA_TECNICA_LECHE_V1.pdf", 
+            "Lácteos Premium S.A.S.", 
+            "Leche Deslactosada UHT", 
+            "FICHA_TECNICA_BASICA", 
+            "FICHA_TECNICA_LECHE_V1.pdf", 
+            "application/pdf"
+        );
+        Documento doc2 = new Documento(
+            "segar-documents", 
+            "Lácteos Premium S.A.S./Leche Deslactosada UHT/CERTIFICADO_EXISTENCIA/CERTIFICADO_EXISTENCIA_V1.pdf", 
+            "Lácteos Premium S.A.S.", 
+            "Leche Deslactosada UHT", 
+            "CERTIFICADO_EXISTENCIA", 
+            "CERTIFICADO_EXISTENCIA_V1.pdf", 
+            "application/pdf"
+        );
+        Documento doc3 = new Documento(
+            "segar-documents", 
+            "Lácteos Premium S.A.S./Leche Deslactosada UHT/RUT_EMPRESA/RUT_EMPRESA_V1.pdf", 
+            "Lácteos Premium S.A.S.", 
+            "Leche Deslactosada UHT", 
+            "RUT_EMPRESA", 
+            "RUT_EMPRESA_V1.pdf", 
+            "application/pdf"
+        );
+
+        // Asociar documentos al trámite t2
+        doc1.setTramite(t2);
+        doc2.setTramite(t2);
+        doc3.setTramite(t2);
+        t2.addDocumento(doc1);
+        t2.addDocumento(doc2);
+        t2.addDocumento(doc3);
+        //documentoRepository.saveAll(List.of(doc1, doc2, doc3));
+        tramiteRepo.save(t2);
+
+
+        // Crear clasificaciones para cada producto
+        ClasificacionProducto clasificacion1 = ClasificacionProducto.builder()
+            .productoId(producto1.getId())
+            .categoria("Lácteos y derivados")
+            .nivelRiesgo(ClasificacionProducto.NivelRiesgo.MEDIO)
+            .poblacionObjetivo("Población general adulta")
+            .procesamiento("Pasteurización")
+            .tipoAccion(ClasificacionProducto.TipoAccion.REGISTRO)
+            .esImportado(false)
+            .fechaClasificacion(LocalDateTime.now())
+            .build();
+
+        ClasificacionProducto clasificacion2 = ClasificacionProducto.builder()
+            .productoId(producto2.getId())
+            .categoria("Bebidas no alcohólicas")
+            .nivelRiesgo(ClasificacionProducto.NivelRiesgo.BAJO)
+            .poblacionObjetivo("Población general adulta")
+            .procesamiento("Tratamiento térmico")
+            .tipoAccion(ClasificacionProducto.TipoAccion.REGISTRO)
+            .esImportado(false)
+            .fechaClasificacion(LocalDateTime.now())
+            .build();
+
+        ClasificacionProducto clasificacion3 = ClasificacionProducto.builder()
+            .productoId(producto3.getId())
+            .categoria("Cereales y productos de panadería")
+            .nivelRiesgo(ClasificacionProducto.NivelRiesgo.BAJO)
+            .poblacionObjetivo("Población general adulta")
+            .procesamiento("Horneado")
+            .tipoAccion(ClasificacionProducto.TipoAccion.REGISTRO)
+            .esImportado(false)
+            .fechaClasificacion(LocalDateTime.now())
+            .build();
+
+        ClasificacionProducto clasificacion4 = ClasificacionProducto.builder()
+            .productoId(producto4.getId())
+            .categoria("Alimentos de origen animal")
+            .nivelRiesgo(ClasificacionProducto.NivelRiesgo.ALTO)
+            .poblacionObjetivo("Población general adulta")
+            .procesamiento("Refrigeración")
+            .tipoAccion(ClasificacionProducto.TipoAccion.REGISTRO)
+            .esImportado(false)
+            .fechaClasificacion(LocalDateTime.now())
+            .build();
+
+        ClasificacionProducto clasificacion5 = ClasificacionProducto.builder()
+            .productoId(producto5.getId())
+            .categoria("Frutas y verduras procesadas")
+            .nivelRiesgo(ClasificacionProducto.NivelRiesgo.BAJO)
+            .poblacionObjetivo("Población general adulta")
+            .procesamiento("Deshidratación")
+            .tipoAccion(ClasificacionProducto.TipoAccion.REGISTRO)
+            .esImportado(false)
+            .fechaClasificacion(LocalDateTime.now())
+            .build();
+
+        ClasificacionProducto clasificacion6 = ClasificacionProducto.builder()
+            .productoId(producto6.getId())
+            .categoria("Condimentos y especias")
+            .nivelRiesgo(ClasificacionProducto.NivelRiesgo.BAJO)
+            .poblacionObjetivo("Población general adulta")
+            .procesamiento("Molienda y mezcla")
+            .tipoAccion(ClasificacionProducto.TipoAccion.REGISTRO)
+            .esImportado(false)
+            .fechaClasificacion(LocalDateTime.now())
+            .build();
+
+        clasificacionProductoRepository.saveAll(List.of(
+            clasificacion1, clasificacion2, clasificacion3,
+            clasificacion4, clasificacion5, clasificacion6
+        ));
 
 
         // EVENTOS PARA TRÁMITE 1 (APROBADO)
@@ -280,83 +396,99 @@ public class DatabaseInit implements ApplicationRunner{
         // Eventos para vencimientos de registros sanitarios
         List<RegistroSanitario> registros = registroSanitarioRepository.findAll();
         for (RegistroSanitario registro : registros) {
-            PrioridadEvento prioridad = PrioridadEvento.BAJA;
-            EstadoEvento estado = EstadoEvento.ACTIVO;
+            // Obtener el trámite asociado al registro
+            Tramite tramiteAsociado = tramiteRepo.findById(registro.getTramiteId()).orElse(null);
+            Long empresaId = registro.getEmpresaId();
+            Long usuarioId = tramiteAsociado != null && tramiteAsociado.getUsuario() != null ?
+                    tramiteAsociado.getUsuario().getId() : null;
 
-            // Calcular prioridad según cercanía al vencimiento
-            long diasParaVencer = java.time.temporal.ChronoUnit.DAYS.between(
-                    LocalDate.now(),
-                    registro.getFechaVencimiento().toLocalDate()
-            );
-
-            if (diasParaVencer <= 30) {
-                prioridad = PrioridadEvento.ALTA;
-            } else if (diasParaVencer <= 90) {
-                prioridad = PrioridadEvento.MEDIA;
+            // Evento 30 días antes del vencimiento
+            LocalDate fechaAlerta30Dias = registro.getFechaVencimiento().toLocalDate().minusDays(30);
+            if (fechaAlerta30Dias.isAfter(LocalDate.now().minusMonths(1))) {
+                Evento eventoAlerta = Evento.builder()
+                        .titulo("Alerta: Vencimiento Registro Sanitario en 30 días")
+                        .descripcion("El registro sanitario " + registro.getNumeroRegistro() + " vence en 30 días. Iniciar proceso de renovación.")
+                        .fecha(fechaAlerta30Dias)
+                        .tipo(TipoEvento.VENCIMIENTO)
+                        .categoria(CategoriaEvento.REGISTRO_SANITARIO)
+                        .prioridad(PrioridadEvento.ALTA)
+                        .estado(fechaAlerta30Dias.isBefore(LocalDate.now()) ? EstadoEvento.COMPLETADO : EstadoEvento.ACTIVO)
+                        .empresaId(empresaId)
+                        .usuarioId(usuarioId)
+                        .tramiteId(registro.getTramiteId())
+                        .build();
+                eventosCalendario.add(eventoAlerta);
             }
 
-            if (diasParaVencer < 0) {
-                estado = EstadoEvento.VENCIDO;
+            // Evento el día del vencimiento
+            LocalDate fechaVencimiento = registro.getFechaVencimiento().toLocalDate();
+            if (fechaVencimiento.isAfter(LocalDate.now().minusMonths(1))) {
+                Evento eventoVencimiento = Evento.builder()
+                        .titulo("CRÍTICO: Vencimiento Registro Sanitario")
+                        .descripcion("El registro sanitario " + registro.getNumeroRegistro() + " vence HOY. Se requiere acción inmediata.")
+                        .fecha(fechaVencimiento)
+                        .tipo(TipoEvento.VENCIMIENTO)
+                        .categoria(CategoriaEvento.REGISTRO_SANITARIO)
+                        .prioridad(PrioridadEvento.ALTA)
+                        .estado(fechaVencimiento.isBefore(LocalDate.now()) ? EstadoEvento.COMPLETADO : EstadoEvento.ACTIVO)
+                        .empresaId(empresaId)
+                        .usuarioId(usuarioId)
+                        .tramiteId(registro.getTramiteId())
+                        .build();
+                eventosCalendario.add(eventoVencimiento);
             }
-
-            Evento eventoVencimiento = Evento.builder()
-                    .titulo("Vencimiento Registro Sanitario - " + registro.getNumeroRegistro())
-                    .descripcion("El registro sanitario " + registro.getNumeroRegistro() + " vence el " + registro.getFechaVencimiento().toLocalDate())
-                    .fecha(registro.getFechaVencimiento().toLocalDate())
-                    .hora(java.time.LocalTime.of(9, 0))
-                    .tipo(TipoEvento.VENCIMIENTO)
-                    .categoria(CategoriaEvento.REGISTRO_SANITARIO)
-                    .prioridad(prioridad)
-                    .estado(estado)
-                    .empresaId(registro.getEmpresaId())
-                    .build();
-
-            eventosCalendario.add(eventoVencimiento);
         }
 
         // Eventos para plazos finales de requerimientos
         List<Requerimiento> requerimientos = reqRepo.findAll();
         for (Requerimiento requerimiento : requerimientos) {
-            PrioridadEvento prioridad = PrioridadEvento.BAJA;
-            EstadoEvento estado = EstadoEvento.ACTIVO;
+            if (requerimiento.getDeadline() != null && requerimiento.getStatus() == EstadoRequerimiento.PENDIENTE) {
+                Tramite tramiteReq = requerimiento.getTramite();
+                Long empresaId = tramiteReq.getProduct() != null ? tramiteReq.getProduct().getEmpresaId() : null;
+                Long usuarioId = tramiteReq.getUsuario() != null ? tramiteReq.getUsuario().getId() : null;
 
-            // Calcular prioridad según cercanía al plazo
-            long diasParaPlazo = java.time.temporal.ChronoUnit.DAYS.between(
-                    LocalDate.now(),
-                    requerimiento.getDeadline()
-            );
+                // Evento 5 días antes
+                LocalDate fechaAlerta5Dias = requerimiento.getDeadline().minusDays(5);
+                if (fechaAlerta5Dias.isAfter(LocalDate.now().minusDays(30))) {
+                    Evento eventoAlerta = Evento.builder()
+                            .titulo("Alerta: Respuesta a requerimiento en 5 días")
+                            .descripcion("El requerimiento " + requerimiento.getNumber() + " debe responderse en 5 días.")
+                            .fecha(fechaAlerta5Dias)
+                            .tipo(TipoEvento.RECORDATORIO)
+                            .categoria(CategoriaEvento.TRAMITE)
+                            .prioridad(PrioridadEvento.MEDIA)
+                            .estado(fechaAlerta5Dias.isBefore(LocalDate.now()) ? EstadoEvento.COMPLETADO : EstadoEvento.ACTIVO)
+                            .empresaId(empresaId)
+                            .usuarioId(usuarioId)
+                            .tramiteId(tramiteReq.getId())
+                            .build();
+                    eventosCalendario.add(eventoAlerta);
+                }
 
-            if (diasParaPlazo <= 7) {
-                prioridad = PrioridadEvento.ALTA;
-            } else if (diasParaPlazo <= 15) {
-                prioridad = PrioridadEvento.MEDIA;
+                // Evento día del vencimiento
+                LocalDate fechaLimite = requerimiento.getDeadline();
+                if (fechaLimite.isAfter(LocalDate.now().minusDays(30))) {
+                    Evento eventoLimite = Evento.builder()
+                            .titulo("URGENTE: Plazo final para requerimiento")
+                            .descripcion("Último día para responder el requerimiento " + requerimiento.getNumber() + ".")
+                            .fecha(fechaLimite)
+                            .tipo(TipoEvento.PLAZO_FINAL)
+                            .categoria(CategoriaEvento.TRAMITE)
+                            .prioridad(PrioridadEvento.ALTA)
+                            .estado(fechaLimite.isBefore(LocalDate.now()) ? EstadoEvento.COMPLETADO : EstadoEvento.ACTIVO)
+                            .empresaId(empresaId)
+                            .usuarioId(usuarioId)
+                            .tramiteId(tramiteReq.getId())
+                            .build();
+                    eventosCalendario.add(eventoLimite);
+                }
             }
-
-            if (diasParaPlazo < 0) {
-                estado = EstadoEvento.VENCIDO;
-            } else if (requerimiento.getStatus() == EstadoRequerimiento.RESPONDIDO) {
-                estado = EstadoEvento.COMPLETADO;
-            }
-
-            Evento eventoPlazo = Evento.builder()
-                    .titulo("Plazo Final Requerimiento - Trámite " + requerimiento.getTramite().getRadicadoNumber())
-                    .descripcion("Plazo final para cumplir requerimiento del trámite " + requerimiento.getTramite().getRadicadoNumber() + " - " + requerimiento.getDescription())
-                    .fecha(requerimiento.getDeadline())
-                    .hora(java.time.LocalTime.of(17, 0))
-                    .tipo(TipoEvento.PLAZO_FINAL)
-                    .categoria(CategoriaEvento.TRAMITE)
-                    .prioridad(prioridad)
-                    .estado(estado)
-                    .empresaId(1L)
-                    .tramiteId(requerimiento.getTramite().getId())
-                    .build();
-
-            eventosCalendario.add(eventoPlazo);
         }
 
         eventoCalendarioRepository.saveAll(eventosCalendario);
         System.out.println("✅ " + eventosCalendario.size() + " eventos de calendario creados");
     }
+
 
     private void crearEventosCompletos(Tramite tramite, EventoTramiteRepository repo, TramiteRepository tramiteRepo) {
         List<EventoTramite> eventos = new ArrayList<>(List.of(

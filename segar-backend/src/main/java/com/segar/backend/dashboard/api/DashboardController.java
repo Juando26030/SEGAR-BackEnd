@@ -2,7 +2,10 @@ package com.segar.backend.dashboard.api;
 
 import com.segar.backend.dashboard.domain.dto.*;
 import com.segar.backend.dashboard.service.DashboardService;
+import com.segar.backend.security.service.AuthenticatedUserService;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.web.bind.annotation.*;
 
 import java.time.LocalDate;
@@ -14,8 +17,21 @@ public class DashboardController {
 
     private final DashboardService dashboardService;
 
+    @Autowired
+    private AuthenticatedUserService authenticatedUserService;
+
     public DashboardController(DashboardService dashboardService) {
         this.dashboardService = dashboardService;
+    }
+
+    /**
+     * Valida que el empresaId del request coincida con el del usuario autenticado
+     */
+    private void validateTenantAccess(Long empresaIdRequest) {
+        Long empresaIdUsuario = authenticatedUserService.getCurrentUserEmpresaId();
+        if (!empresaIdRequest.equals(empresaIdUsuario)) {
+            throw new AccessDeniedException("No tienes permiso para acceder a datos de otra empresa");
+        }
     }
 
     // ==================== RESUMEN ====================
@@ -24,13 +40,16 @@ public class DashboardController {
     public ResponseEntity<DashboardResumenDTO> getResumen(
             @RequestParam(name = "diasVencimiento", required = false, defaultValue = "30") int diasVencimiento
     ) {
-        return ResponseEntity.ok(dashboardService.getResumen(diasVencimiento));
+        // Usar automáticamente la empresa del usuario autenticado
+        Long empresaId = authenticatedUserService.getCurrentUserEmpresaId();
+        return ResponseEntity.ok(dashboardService.getResumenByEmpresa(empresaId, diasVencimiento));
     }
 
     @GetMapping("/resumen/empresa/{empresaId}")
     public ResponseEntity<DashboardResumenDTO> getResumenEmpresa(
             @PathVariable Long empresaId,
             @RequestParam(defaultValue = "30") int diasVencimiento) {
+        validateTenantAccess(empresaId);
         return ResponseEntity.ok(dashboardService.getResumenByEmpresa(empresaId, diasVencimiento));
     }
 
@@ -44,11 +63,13 @@ public class DashboardController {
 
     @GetMapping("/tramites/por-estado")
     public ResponseEntity<List<ConteoPorEstadoDTO>> tramitesPorEstado() {
-        return ResponseEntity.ok(dashboardService.tramitesPorEstado());
+        Long empresaId = authenticatedUserService.getCurrentUserEmpresaId();
+        return ResponseEntity.ok(dashboardService.tramitesPorEstadoByEmpresa(empresaId));
     }
 
     @GetMapping("/tramites/por-estado/empresa/{empresaId}")
     public ResponseEntity<List<ConteoPorEstadoDTO>> tramitesPorEstadoEmpresa(@PathVariable Long empresaId) {
+        validateTenantAccess(empresaId);
         return ResponseEntity.ok(dashboardService.tramitesPorEstadoByEmpresa(empresaId));
     }
 
@@ -63,14 +84,16 @@ public class DashboardController {
     public ResponseEntity<List<SerieMesDTO>> tramitesPorMes(
             @RequestParam(name = "year", required = false) Integer year
     ) {
+        Long empresaId = authenticatedUserService.getCurrentUserEmpresaId();
         int y = (year != null) ? year : LocalDate.now().getYear();
-        return ResponseEntity.ok(dashboardService.tramitesPorMes(y));
+        return ResponseEntity.ok(dashboardService.tramitesPorMesByEmpresa(y, empresaId));
     }
 
     @GetMapping("/tramites/por-mes/empresa/{empresaId}")
     public ResponseEntity<List<SerieMesDTO>> tramitesPorMesEmpresa(
             @PathVariable Long empresaId,
             @RequestParam(name = "year", required = false) Integer year) {
+        validateTenantAccess(empresaId);
         int y = (year != null) ? year : LocalDate.now().getYear();
         return ResponseEntity.ok(dashboardService.tramitesPorMesByEmpresa(y, empresaId));
     }
@@ -89,13 +112,15 @@ public class DashboardController {
     public ResponseEntity<List<TramiteRecienteDTO>> tramitesRecientes(
             @RequestParam(name = "limit", required = false, defaultValue = "5") int limit
     ) {
-        return ResponseEntity.ok(dashboardService.tramitesRecientes(limit));
+        Long empresaId = authenticatedUserService.getCurrentUserEmpresaId();
+        return ResponseEntity.ok(dashboardService.tramitesRecientesByEmpresa(empresaId, limit));
     }
 
     @GetMapping("/tramites/recientes/empresa/{empresaId}")
     public ResponseEntity<List<TramiteRecienteDTO>> tramitesRecientesEmpresa(
             @PathVariable Long empresaId,
             @RequestParam(name = "limit", required = false, defaultValue = "5") int limit) {
+        validateTenantAccess(empresaId);
         return ResponseEntity.ok(dashboardService.tramitesRecientesByEmpresa(empresaId, limit));
     }
 

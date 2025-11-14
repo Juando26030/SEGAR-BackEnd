@@ -45,15 +45,16 @@ public class KeycloakDiagnostics {
         logger.info("🔍 ===============================================");
 
         try {
-            // Test 1: Verificar conexión básica
-            logger.info("📡 Test 1: Verificando conexión con Keycloak...");
-            keycloak.serverInfo().getInfo();
-            logger.info("✅ Conexión exitosa con Keycloak");
-
-            // Test 2: Verificar acceso al realm
-            logger.info("📡 Test 2: Verificando acceso al realm '{}'...", realm);
+            // Test 1: Verificar acceso al realm (evitamos serverInfo por incompatibilidad de versión)
+            logger.info("📡 Test 1: Verificando acceso al realm '{}'...", realm);
             var realmInfo = keycloak.realm(realm).toRepresentation();
+            logger.info("✅ Conexión exitosa con Keycloak");
             logger.info("✅ Acceso exitoso al realm: {}", realmInfo.getRealm());
+
+            // Test 2: Verificar información del realm
+            logger.info("📡 Test 2: Verificando configuración del realm...");
+            logger.info("✅ Realm habilitado: {}", realmInfo.isEnabled());
+            logger.info("✅ Login con email: {}", realmInfo.isLoginWithEmailAllowed());
 
             // Test 3: Intentar listar clientes (puede fallar por permisos)
             logger.info("📡 Test 3: Verificando permisos para listar clientes...");

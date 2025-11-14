@@ -39,6 +39,48 @@ public class EventoService {
         return convertirADTO(evento);
     }
 
+    //Eventos por mes y empresa
+    public List<EventoDTO> obtenerEventosPorMesYEmpresa(int mes, int anio, Long empresaId) {
+        return eventoRepository.findByEmpresaIdAndMesAndAnio(empresaId, mes, anio)
+                .stream()
+                .map(this::convertirADTO)
+                .collect(Collectors.toList());
+    }
+
+    //Eventos por mes y usuario
+    public List<EventoDTO> obtenerEventosPorMesYUsuario(int mes, int anio, Long usuarioId) {
+        return eventoRepository.findByUsuarioIdAndMesAndAnio(usuarioId, mes, anio)
+                .stream()
+                .map(this::convertirADTO)
+                .collect(Collectors.toList());
+    }
+
+    //Eventos por usuario
+    public List<EventoDTO> obtenerEventosPorUsuario(Long usuarioId) {
+        return eventoRepository.findByUsuarioId(usuarioId)
+                .stream()
+                .map(this::convertirADTO)
+                .collect(Collectors.toList());
+    }
+
+    //Próximos eventos por empresa
+    public List<EventoDTO> obtenerProximosTresEventosPorEmpresa(Long empresaId) {
+        org.springframework.data.domain.Pageable pageable = org.springframework.data.domain.PageRequest.of(0, 3);
+        return eventoRepository.findTop3ProximosEventosByEmpresaId(empresaId, pageable)
+                .stream()
+                .map(this::convertirADTO)
+                .collect(Collectors.toList());
+    }
+
+    //Próximos eventos por usuario
+    public List<EventoDTO> obtenerProximosTresEventosPorUsuario(Long usuarioId) {
+        org.springframework.data.domain.Pageable pageable = org.springframework.data.domain.PageRequest.of(0, 3);
+        return eventoRepository.findTop3ProximosEventosByUsuarioId(usuarioId, pageable)
+                .stream()
+                .map(this::convertirADTO)
+                .collect(Collectors.toList());
+    }
+
     public EventoDTO crearEvento(CrearEventoDTO crearEventoDTO) {
         Evento evento = Evento.builder()
                 .titulo(crearEventoDTO.getTitulo())

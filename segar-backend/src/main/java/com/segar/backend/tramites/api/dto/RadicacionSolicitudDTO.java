@@ -22,4 +22,7 @@ public class RadicacionSolicitudDTO {
     private Long productoId;
     private String procedureType;
     private String radicadoNumber;
+    private Long usuarioId;
+    private ClasificacionProductoDTO clasificacion;
+
 }

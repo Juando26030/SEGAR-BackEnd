@@ -7,10 +7,15 @@ import com.segar.backend.gestionUsuarios.api.dto.UserResponse;
 import com.segar.backend.gestionUsuarios.domain.Usuario;
 import com.segar.backend.gestionUsuarios.service.KeycloakUserService;
 import com.segar.backend.gestionUsuarios.service.UsuarioService;
+import com.segar.backend.security.service.AuthenticatedUserService;
 import com.segar.backend.shared.domain.Empresa;
 import jakarta.validation.Valid;
 import org.keycloak.representations.idm.UserRepresentation;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
@@ -23,8 +28,13 @@ import java.util.stream.Collectors;
 @RequestMapping("/api/usuarios")
 public class UserManagementController {
 
+    private static final Logger logger = LoggerFactory.getLogger(UserManagementController.class);
+
     private final UsuarioService usuarioService;
     private final KeycloakUserService keycloakUserService;
+
+    @Autowired
+    private AuthenticatedUserService authenticatedUserService;
 
     public UserManagementController(UsuarioService usuarioService,
                                     KeycloakUserService keycloakUserService) {
@@ -32,9 +42,20 @@ public class UserManagementController {
         this.keycloakUserService = keycloakUserService;
     }
 
+    /**
+     * Valida que el empresaId del request coincida con el del usuario autenticado
+     */
+    private void validateTenantAccess(Long empresaIdRequest) {
+        Long empresaIdUsuario = authenticatedUserService.getCurrentUserEmpresaId();
+        if (!empresaIdRequest.equals(empresaIdUsuario)) {
+            throw new AccessDeniedException("No tienes permiso para acceder a usuarios de otra empresa");
+        }
+    }
+
 
     @GetMapping("/empresa/{empresaId}")
     public ResponseEntity<List<Usuario>> getUsuariosByEmpresaId(@PathVariable Long empresaId) {
+        validateTenantAccess(empresaId);
         List<Usuario> usuarios = usuarioService.getUsuariosByEmpresaId(empresaId);
         return ResponseEntity.ok(usuarios);
     }
@@ -137,10 +158,14 @@ public class UserManagementController {
     @PreAuthorize("hasRole('ADMIN')")
     @GetMapping
     public ResponseEntity<List<UserResponse>> getAllUsers() {
-        List<UserRepresentation> kcUsers = keycloakUserService.getAllUsers();
+        // Filtrar usuarios por empresa del admin autenticado
+        Long empresaId = authenticatedUserService.getCurrentUserEmpresaId();
+        logger.info("Admin consultando usuarios de empresa: {}", empresaId);
 
-        List<UserResponse> responses = kcUsers.stream()
-                .map(this::mapKeycloakUserToResponse)
+        List<Usuario> usuariosLocales = usuarioService.getUsuariosByEmpresaId(empresaId);
+
+        List<UserResponse> responses = usuariosLocales.stream()
+                .map(this::mapUsuarioToResponseSafe)
                 .collect(Collectors.toList());
 
         return ResponseEntity.ok(responses);
@@ -155,8 +180,9 @@ public class UserManagementController {
     @GetMapping("/{id}")
     public ResponseEntity<UserResponse> getUserById(@PathVariable Long id) {
         Usuario usuario = usuarioService.findById(id);
-        return ResponseEntity.ok(mapUsuarioToResponse(usuario));
+        return ResponseEntity.ok(mapUsuarioToResponseSafe(usuario)); // Cambiado aquí
     }
+
 
     @GetMapping("/username/{username}")
     public ResponseEntity<UserResponse> getUserByUsername(@PathVariable String username) {

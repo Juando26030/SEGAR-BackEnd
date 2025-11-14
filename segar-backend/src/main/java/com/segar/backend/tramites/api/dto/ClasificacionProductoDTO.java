@@ -17,6 +17,9 @@ import lombok.NoArgsConstructor;
 @Builder
 public class ClasificacionProductoDTO {
 
+    @NotNull(message = "El ID del producto es obligatorio")
+    private Long productoId;
+
     @NotBlank(message = "La categoría del producto es obligatoria")
     private String categoria;
 
@@ -40,5 +43,6 @@ public class ClasificacionProductoDTO {
     public enum TipoAccion {
         REGISTRO, RENOVACION, MODIFICACION
     }
+
 }
 

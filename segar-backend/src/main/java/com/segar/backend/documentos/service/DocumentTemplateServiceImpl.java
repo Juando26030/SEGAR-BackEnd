@@ -13,6 +13,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -57,10 +58,31 @@ public class DocumentTemplateServiceImpl {
      
     public List<DocumentTemplateDTO> getTemplatesByTramiteAndRiesgo(TipoTramite tipoTramite, CategoriaRiesgo categoriaRiesgo) {
         log.info("Obteniendo plantillas para trámite: {} y categoría riesgo: {}", tipoTramite, categoriaRiesgo);
-        return documentTemplateRepository.findByTipoTramiteAndCategoriaRiesgo(tipoTramite, categoriaRiesgo)
+        List<DocumentTemplateDTO> templates = new ArrayList<DocumentTemplateDTO>();
+        
+        List<DocumentTemplateDTO> templatesI = documentTemplateRepository.findByTipoTramiteAndCategoriaRiesgo(tipoTramite, categoriaRiesgo)
                 .stream()
                 .map(this::convertToDTO)
                 .collect(Collectors.toList());
+        List<DocumentTemplateDTO> templatesIIA = documentTemplateRepository.findByTipoTramiteAndCategoriaRiesgo(tipoTramite, CategoriaRiesgo.IIA)
+                .stream()
+                .map(this::convertToDTO)
+                .collect(Collectors.toList());
+        List<DocumentTemplateDTO> templatesIII = documentTemplateRepository.findByTipoTramiteAndCategoriaRiesgo(tipoTramite, CategoriaRiesgo.III)
+                .stream()
+                .map(this::convertToDTO)
+                .collect(Collectors.toList());
+        if (categoriaRiesgo == CategoriaRiesgo.I) {
+            templates.addAll(templatesI);
+        } else if (categoriaRiesgo == CategoriaRiesgo.IIA) {
+            templates.addAll(templatesI);
+            templates.addAll(templatesIIA);
+        } else if (categoriaRiesgo == CategoriaRiesgo.III) {
+            templates.addAll(templatesI);
+            templates.addAll(templatesIIA);
+            templates.addAll(templatesIII);
+        }
+        return templates;
     }
 
      

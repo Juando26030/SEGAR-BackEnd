@@ -3,6 +3,8 @@ package com.segar.backend.tramites.service;
 
 
 
+import com.segar.backend.gestionUsuarios.domain.Usuario;
+import com.segar.backend.gestionUsuarios.infrastructure.repository.UsuarioRepository;
 import com.segar.backend.shared.domain.EstadoTramite;
 import com.segar.backend.shared.domain.Producto;
 import com.segar.backend.shared.domain.EstadoRequerimiento;
@@ -60,6 +62,13 @@ public class TramiteServiceImpl{
     @Autowired
     private RegistroSanitarioRepository registroSanitarioRepository;
 
+    @Autowired
+    private ClasificacionProductoService clasificacionProductoService;
+
+
+    @Autowired
+    private UsuarioRepository usuarioRepo;
+
 
     public TrackingDTO getTracking(Long tramiteId) {
         Tramite t = tramiteRepo.findById(tramiteId).orElseThrow();
@@ -74,7 +83,7 @@ public class TramiteServiceImpl{
         return eventoRepo.findByTramiteIdOrderByOrdenAsc(tramiteId).stream()
                 .map(e -> new TimelineEventDTO(
                         e.getId(), e.getTitle(), e.getDescription(),
-                        e.getDate() != null ? e.getDate().format(DateTimeFormatter.ofPattern("d 'de' MMMM 'de' yyyy", new Locale("es","CO"))) : "Pendiente",
+                        e.getDate() != null ? e.getDate().format(DateTimeFormatter.ofPattern("d 'de' MMMM 'de' yyyy", Locale.forLanguageTag("es-CO"))) : "Pendiente",
                         e.isCompleted(), e.isCurrentEvent()
                 )).toList();
     }
@@ -146,7 +155,7 @@ public class TramiteServiceImpl{
         return notifRepo.findByTramiteIdOrderByDateDesc(tramiteId).stream()
                 .map(n -> new NotificationDTO(
                         n.getId(), n.getType().name().toLowerCase(), n.getTitle(), n.getMessage(),
-                        n.getDate().format(DateTimeFormatter.ofPattern("d 'de' MMMM 'de' yyyy", new Locale("es","CO"))),
+                        n.getDate().format(DateTimeFormatter.ofPattern("d 'de' MMMM 'de' yyyy", Locale.forLanguageTag("es-CO"))),
                         n.isRead()
                 )).toList();
     }
@@ -194,13 +203,14 @@ public class TramiteServiceImpl{
                     case RESPONDIDO -> "Respondido";
                     case VENCIDO -> "Vencido";
                 },
-                r.getDate() != null ? r.getDate().format(DateTimeFormatter.ofPattern("d 'de' MMMM 'de' yyyy", new Locale("es","CO"))) : ""
+                r.getDate() != null ? r.getDate().format(DateTimeFormatter.ofPattern("d 'de' MMMM 'de' yyyy", Locale.forLanguageTag("es-CO"))) : ""
         );
     }
 
     public List<Tramite> getAllTramites() {
         return tramiteRepo.findAll();
     }
+
 
     public Tramite createTramite(RadicacionSolicitudDTO solicitudTramite) {
         Tramite tramite = new Tramite();
@@ -209,6 +219,12 @@ public class TramiteServiceImpl{
         tramite.setProcedureType(solicitudTramite.getProcedureType());
         Producto p = productoRepo.findById(solicitudTramite.getProductoId()).orElseThrow();
         tramite.setProduct(p);
+        Usuario u = usuarioRepo.findById(solicitudTramite.getUsuarioId()).orElseThrow();
+        tramite.setUsuario(u);
+
+        // Asignar empresaId del usuario
+        tramite.setEmpresaId(u.getEmpresaId());
+
         tramite.setCurrentStatus(EstadoTramite.RADICADO);
         tramite.setLastUpdate(LocalDateTime.now());
         List<EventoTramite> eventos = new ArrayList<>(List.of(
@@ -218,6 +234,12 @@ public class TramiteServiceImpl{
                 crearEvento(tramite, 4, "Evaluación Técnica", "Pendiente análisis técnico", null, false, false)
         ));
         tramite.setEventos(eventos);
+        if (solicitudTramite.getClasificacion() != null) {
+            clasificacionProductoService.guardarClasificacion(
+                    tramite.getProduct().getId(),
+                    solicitudTramite.getClasificacion()
+            );
+        }
         tramiteRepo.save(tramite);
         eventoRepo.saveAll(eventos);
         return tramiteRepo.save(tramite);
@@ -234,4 +256,13 @@ public class TramiteServiceImpl{
         evento.setOrden(orden);
         return evento;
     }
+
+    public List<Tramite> getTramitesByEmpresaId(Long empresaId) {
+        return tramiteRepo.findByEmpresaId(empresaId);
+    }
+
+    public List<Tramite> getTramitesByUsuarioId(Long usuarioId) {
+        return tramiteRepo.findByUsuarioId(usuarioId);
+    }
+
 }

@@ -41,9 +41,12 @@ public class SecurityConfig {
                                 "/swagger-ui/**",
                                 "/actuator/**",
                                 "/auth/**",
-                                "/api/test/public"
+                                "/api/test/public",
+                                "/backoffice/**",
+                                "/api/backoffice/admin/login"
                         ).permitAll()
                         .requestMatchers("/api/admin/**").hasRole("ADMIN")
+                        .requestMatchers("/api/backoffice/admin/**").hasRole("SUPER_ADMIN")
                         .requestMatchers("/api/usuarios/**").hasAnyRole("ADMIN", "EMPLEADO")
                         .requestMatchers("/api/tramites/**").hasAnyRole("ADMIN", "EMPLEADO")
                         .requestMatchers("/api/documentos/**").hasAnyRole("ADMIN", "EMPLEADO")

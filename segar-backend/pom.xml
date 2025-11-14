@@ -96,11 +96,11 @@
             <scope>runtime</scope>
         </dependency>
 
-        <!-- Keycloak Admin Client -->
+        <!-- Keycloak Admin Client - Debe coincidir con la versión del servidor (26.3.5) -->
         <dependency>
             <groupId>org.keycloak</groupId>
             <artifactId>keycloak-admin-client</artifactId>
-            <version>23.0.0</version>
+            <version>26.0.7</version>
         </dependency>
 
         <!-- OpenAPI/Swagger -->

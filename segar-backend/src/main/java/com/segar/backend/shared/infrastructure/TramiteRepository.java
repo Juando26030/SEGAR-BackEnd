@@ -12,9 +12,6 @@ import java.util.Optional;
 
 public interface TramiteRepository extends JpaRepository<Tramite, Long> {
 
-    // Métodos para multi-tenancy
-    List<Tramite> findByEmpresaId(Long empresaId);
-
     List<Tramite> findByEmpresaIdOrderByLastUpdateDesc(Long empresaId);
 
     @Query("SELECT t FROM Tramite t WHERE t.empresaId = :empresaId AND t.currentStatus = :status")

@@ -94,8 +94,4 @@ public class ProductoServiceImpl {
         return productoRepository.findProductosConRegistrosSanitariosVigentesByEmpresaId(empresaId);
     }
 
-    public List<Producto> getProductosByEmpresaId(Long empresaId) {
-        return productoRepository.findByEmpresaId(empresaId);
-    }
-
 }

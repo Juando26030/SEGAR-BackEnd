@@ -211,10 +211,6 @@ public class TramiteServiceImpl{
         return tramiteRepo.findAll();
     }
 
-    // Nuevo método para multi-tenancy
-    public List<Tramite> getTramitesByEmpresaId(Long empresaId) {
-        return tramiteRepo.findByEmpresaIdOrderByLastUpdateDesc(empresaId);
-    }
 
     public Tramite createTramite(RadicacionSolicitudDTO solicitudTramite) {
         Tramite tramite = new Tramite();

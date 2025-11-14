@@ -54,6 +54,4 @@ public interface ProductoRepository extends JpaRepository<Producto, Long> {
             "AND rs.fechaVencimiento > CURRENT_TIMESTAMP")
     List<Producto> findProductosConRegistrosSanitariosVigentesByEmpresaId(@Param("empresaId") Long empresaId);
 
-    List<Producto> findByEmpresaId(Long empresaId);
-
 }

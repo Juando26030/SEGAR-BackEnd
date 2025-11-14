@@ -139,4 +139,20 @@ public class ProductoController {
         validateTenantAccess(empresaId);
         return productoService.getProductosByEmpresaIdNotAssociatedWithTramites(empresaId);
     }
+
+    @GetMapping("/con-registro-vigente")
+    public List<Producto> getProductosConRegistrosSanitariosVigentes() {
+        return productoService.getProductosConRegistrosSanitariosVigentes();
+    }
+
+    @GetMapping("/empresa/{empresaId}/con-registro-vigente")
+    public List<Producto> getProductosConRegistrosSanitariosVigentesByEmpresaId(@PathVariable Long empresaId) {
+        return productoService.getProductosConRegistrosSanitariosVigentesByEmpresaId(empresaId);
+    }
+
+    @GetMapping("/empresa/{empresaId}")
+    public List<Producto> getProductosByEmpresaId(@PathVariable Long empresaId) {
+        return productoService.getProductosByEmpresaId(empresaId);
+    }
+
 }

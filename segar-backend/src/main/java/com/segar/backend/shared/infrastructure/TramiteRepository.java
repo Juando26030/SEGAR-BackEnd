@@ -7,6 +7,7 @@ import org.springframework.data.repository.query.Param;
 
 import java.time.LocalDate;
 import java.util.List;
+import java.util.Optional;
 
 
 public interface TramiteRepository extends JpaRepository<Tramite, Long> {
@@ -19,5 +20,19 @@ public interface TramiteRepository extends JpaRepository<Tramite, Long> {
     @Query("SELECT t FROM Tramite t WHERE t.empresaId = :empresaId AND t.currentStatus = :status")
     List<Tramite> findByEmpresaIdAndStatus(@Param("empresaId") Long empresaId,
                                            @Param("status") com.segar.backend.shared.domain.EstadoTramite status);
+
+    @Query(value = """
+    SELECT t.* 
+    FROM tramite t
+    JOIN producto p ON t.product_id = p.id
+    WHERE p.nombre = :nombre
+    """, nativeQuery = true)
+    Optional<Tramite> findByNombreProducto(@Param("nombre") String nombre);
+
+    @Query("SELECT t FROM Tramite t WHERE t.product.empresaId = :empresaId")
+    List<Tramite> findByEmpresaId(@Param("empresaId") Long empresaId);
+
+    List<Tramite> findByUsuarioId(Long usuarioId);
+
 
 }

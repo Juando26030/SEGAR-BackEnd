@@ -1,14 +1,25 @@
 package com.segar.backend.documentos.api;
 
 import lombok.RequiredArgsConstructor;
+
+import java.util.List;
+
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 
-import java.util.concurrent.TimeUnit;
+//import com.segar.backend.documentos.domain.ClasificationRequest;
+import com.segar.backend.documentos.domain.Documento;
+import com.segar.backend.documentos.domain.SignedUrlRequest;
+import com.segar.backend.documentos.service.DocumentService;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
 
-import com.google.cloud.storage.BlobInfo;
-import com.google.cloud.storage.HttpMethod;
-import com.google.cloud.storage.Storage;
-import java.net.URL;
+
+
+
+
+
+
 
 
 
@@ -17,34 +28,79 @@ import java.net.URL;
 @RequiredArgsConstructor
 public class DocumentosController {
 
-    private final Storage storage;
+    @Autowired
+    private DocumentService documentService;
 
     @PostMapping("/signed-url")
     public String generateSignedUrl(@RequestBody SignedUrlRequest request) {
-        BlobInfo blobInfo = BlobInfo.newBuilder(request.getBucketName(), request.getObjectName())
-            .setContentType(request.getContentType())
-            .build();
 
-        URL signedUrl = storage.signUrl(
-                blobInfo,
-                15, TimeUnit.MINUTES,
-                Storage.SignUrlOption.httpMethod(HttpMethod.PUT),
-                Storage.SignUrlOption.withContentType()
+        String signedUrl = documentService.generateSignedUrl(
+            request.getBucketName(),
+            request.getObjectName(),
+            request.getContentType()
         );
 
-        return signedUrl.toString();
+        
+        String[] partes = request.getObjectName().split("/");
+
+        String nombreEmpresa = partes[0];
+        String nombreProducto = partes[1];
+        String idDocumento = partes[2];
+        String nombreArchivo = partes[3];
+
+        documentService.saveDocumento(
+            request.getBucketName(),
+            request.getObjectName(),
+            nombreEmpresa, 
+            nombreProducto, 
+            idDocumento, 
+            nombreArchivo,
+            request.getContentType()
+        );
+
+        return signedUrl;
     }
 
-    public static class SignedUrlRequest {
-        private String bucketName;
-        private String objectName;
-        private String contentType;
+    @GetMapping("/all")
+    public List<Documento> getAllDocs() {
+        List<Documento> documentos = documentService.getAllDocumentos();
 
-        public String getBucketName() { return bucketName; }
-        public void setBucketName(String bucketName) { this.bucketName = bucketName; }
-        public String getObjectName() { return objectName; }
-        public void setObjectName(String objectName) { this.objectName = objectName; }
-        public String getContentType() { return contentType; }
-        public void setContentType(String contentType) { this.contentType = contentType; }
+        return documentos;
     }
+    
+    @PostMapping("/get-signed-url")
+    public String postMethodName(@RequestBody SignedUrlRequest request) {
+        
+        return documentService.generateGETSignedUrl(
+            request.getBucketName(),
+            request.getObjectName(),
+            request.getContentType()
+        );
+    }
+    
+    @GetMapping("/tramite/{id}")
+    public List<Documento> getDocumetsByTramiteId(@PathVariable("id") String id) {
+        return documentService.getDocumentosByTramiteId(id);
+    }
+
+    @PostMapping("/descargar")
+    public String getMethodName(@RequestBody SignedUrlRequest request) {
+        try {
+            String signedUrl = documentService.generateGETSignedUrl(
+                request.getBucketName(),
+                request.getObjectName(),
+                request.getContentType()
+            );
+            String[] partes = request.getObjectName().split("/");
+            String nombreArchivo = partes[3];
+            documentService.descargarYGuardar(signedUrl, nombreArchivo);
+        } catch (Exception e) {
+            // TODO Auto-generated catch block
+            e.printStackTrace();
+        }
+        return new String("SE DESCARGO EL DOC");
+    }
+    
+    
+
 }

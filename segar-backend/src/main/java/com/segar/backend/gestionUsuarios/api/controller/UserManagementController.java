@@ -180,8 +180,9 @@ public class UserManagementController {
     @GetMapping("/{id}")
     public ResponseEntity<UserResponse> getUserById(@PathVariable Long id) {
         Usuario usuario = usuarioService.findById(id);
-        return ResponseEntity.ok(mapUsuarioToResponse(usuario));
+        return ResponseEntity.ok(mapUsuarioToResponseSafe(usuario)); // Cambiado aquí
     }
+
 
     @GetMapping("/username/{username}")
     public ResponseEntity<UserResponse> getUserByUsername(@PathVariable String username) {

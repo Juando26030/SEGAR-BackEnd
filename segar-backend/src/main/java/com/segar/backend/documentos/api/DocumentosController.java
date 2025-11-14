@@ -2,6 +2,7 @@ package com.segar.backend.documentos.api;
 
 import lombok.RequiredArgsConstructor;
 
+import java.io.IOException;
 import java.util.List;
 
 import org.springframework.beans.factory.annotation.Autowired;
@@ -15,14 +16,6 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 
 
-
-
-
-
-
-
-
-
 @RestController
 @RequestMapping("/api/documentos")
 @RequiredArgsConstructor
@@ -32,7 +25,7 @@ public class DocumentosController {
     private DocumentService documentService;
 
     @PostMapping("/signed-url")
-    public String generateSignedUrl(@RequestBody SignedUrlRequest request) {
+    public String generateSignedUrl(@RequestBody SignedUrlRequest request) throws IOException {
 
         String signedUrl = documentService.generateSignedUrl(
             request.getBucketName(),
@@ -40,7 +33,7 @@ public class DocumentosController {
             request.getContentType()
         );
 
-        
+
         String[] partes = request.getObjectName().split("/");
 
         String nombreEmpresa = partes[0];
@@ -48,16 +41,25 @@ public class DocumentosController {
         String idDocumento = partes[2];
         String nombreArchivo = partes[3];
 
+        // Crear nombre único del archivo usando idDocumento_nombreArchivo
+        String nombreArchivoUnico = idDocumento + "_" + nombreArchivo;
+
         documentService.saveDocumento(
             request.getBucketName(),
             request.getObjectName(),
-            nombreEmpresa, 
-            nombreProducto, 
-            idDocumento, 
+            nombreEmpresa,
+            nombreProducto,
+            idDocumento,
             nombreArchivo,
             request.getContentType()
         );
-
+        String urlDescarga = documentService.generateGETSignedUrl(
+            request.getBucketName(),
+            request.getObjectName(),
+            request.getContentType()
+        );
+        // Usar nombre único para guardar físicamente el archivo
+        documentService.descargarYGuardar(urlDescarga, nombreArchivo);
         return signedUrl;
     }
 
@@ -92,8 +94,13 @@ public class DocumentosController {
                 request.getContentType()
             );
             String[] partes = request.getObjectName().split("/");
+            String idDocumento = partes[2];
             String nombreArchivo = partes[3];
-            documentService.descargarYGuardar(signedUrl, nombreArchivo);
+
+            // Crear nombre único del archivo usando idDocumento_nombreArchivo
+            String nombreArchivoUnico = idDocumento + "_" + nombreArchivo;
+
+            documentService.descargarYGuardar(signedUrl, nombreArchivoUnico);
         } catch (Exception e) {
             // TODO Auto-generated catch block
             e.printStackTrace();

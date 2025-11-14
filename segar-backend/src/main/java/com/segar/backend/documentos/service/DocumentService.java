@@ -86,7 +86,36 @@ public class DocumentService {
         return documentoRepository.findByTramiteId(tramiteId);
     }
 
-    public void descargarYGuardar(String urlArchivo, String nombreArchivo ) throws IOException {
+    public void descargarYGuardar(String urlArchivo, String nombreArchivo, String idDocumento) throws IOException {
+
+        // Carpeta donde se guardarán los archivos
+        String directorioDestino = "data/files";
+
+        // Crear carpeta si no existe
+        Path carpeta = Paths.get(directorioDestino);
+        if (!Files.exists(carpeta)) {
+            Files.createDirectories(carpeta);
+        }
+
+        // Crear nombre único del archivo usando idDocumento_nombreArchivo
+        String nombreArchivoUnico = idDocumento + "_" + nombreArchivo;
+
+        // Ruta final del archivo
+        Path archivoDestino = carpeta.resolve(nombreArchivoUnico);
+
+        // Abrir la conexión a la URL
+        URL url = new URL(urlArchivo);
+        HttpURLConnection conexion = (HttpURLConnection) url.openConnection();
+        conexion.setRequestMethod("GET");
+
+        try (InputStream inputStream = conexion.getInputStream()) {
+            Files.copy(inputStream, archivoDestino, StandardCopyOption.REPLACE_EXISTING);
+        }
+
+        System.out.println("Archivo descargado en: " + archivoDestino.toAbsolutePath());
+    }
+
+    public void descargarYGuardar(String urlArchivo, String nombreArchivoUnico) throws IOException {
 
         // Carpeta donde se guardarán los archivos
         String directorioDestino = "data/files";
@@ -98,7 +127,7 @@ public class DocumentService {
         }
 
         // Ruta final del archivo
-        Path archivoDestino = carpeta.resolve(nombreArchivo);
+        Path archivoDestino = carpeta.resolve(nombreArchivoUnico);
 
         // Abrir la conexión a la URL
         URL url = new URL(urlArchivo);

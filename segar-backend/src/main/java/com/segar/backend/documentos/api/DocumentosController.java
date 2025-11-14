@@ -41,9 +41,6 @@ public class DocumentosController {
         String idDocumento = partes[2];
         String nombreArchivo = partes[3];
 
-        // Crear nombre único del archivo usando idDocumento_nombreArchivo
-        String nombreArchivoUnico = idDocumento + "_" + nombreArchivo;
-
         documentService.saveDocumento(
             request.getBucketName(),
             request.getObjectName(),
@@ -53,13 +50,6 @@ public class DocumentosController {
             nombreArchivo,
             request.getContentType()
         );
-        String urlDescarga = documentService.generateGETSignedUrl(
-            request.getBucketName(),
-            request.getObjectName(),
-            request.getContentType()
-        );
-        // Usar nombre único para guardar físicamente el archivo
-        documentService.descargarYGuardar(urlDescarga, nombreArchivo);
         return signedUrl;
     }
 

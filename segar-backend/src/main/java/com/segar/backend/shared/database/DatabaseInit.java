@@ -165,6 +165,7 @@ public class DatabaseInit implements ApplicationRunner{
         t1.setProduct(producto1);
         t1.setCurrentStatus(EstadoTramite.APROBADO);
         t1.setLastUpdate(LocalDateTime.now().minusDays(10));
+        t1.setEmpresaId(1L);
         tramiteRepo.save(t1);
 
         // TRÁMITE 2 - APROBADO (Leche)
@@ -175,6 +176,7 @@ public class DatabaseInit implements ApplicationRunner{
         t2.setProduct(producto2);
         t2.setCurrentStatus(EstadoTramite.APROBADO);
         t2.setLastUpdate(LocalDateTime.now().minusDays(5));
+        t2.setEmpresaId(1L);
         tramiteRepo.save(t2);
 
         // TRÁMITE 3 - RADICADO (Queso)
@@ -185,6 +187,7 @@ public class DatabaseInit implements ApplicationRunner{
         t3.setProduct(producto3);
         t3.setCurrentStatus(EstadoTramite.RADICADO);
         t3.setLastUpdate(LocalDateTime.now().minusDays(2));
+        t3.setEmpresaId(1L);
         tramiteRepo.save(t3);
 
         // TRÁMITE 4 - EN EVALUACIÓN TÉCNICA (Mantequilla)
@@ -195,6 +198,7 @@ public class DatabaseInit implements ApplicationRunner{
         t4.setProduct(producto4);
         t4.setCurrentStatus(EstadoTramite.EN_EVALUACION_TECNICA);
         t4.setLastUpdate(LocalDateTime.now().minusDays(3));
+        t4.setEmpresaId(1L);
         tramiteRepo.save(t4);
 
         // TRÁMITE 5 - REQUIERE INFORMACIÓN (Kumis)
@@ -205,6 +209,7 @@ public class DatabaseInit implements ApplicationRunner{
         t5.setProduct(producto5);
         t5.setCurrentStatus(EstadoTramite.REQUIERE_INFORMACION);
         t5.setLastUpdate(LocalDateTime.now().minusDays(1));
+        t5.setEmpresaId(1L);
         tramiteRepo.save(t5);
 
         // TRÁMITE 6 - APROBADO (Crema de Leche, para probar historial largo y vencimiento cercano)
@@ -215,6 +220,7 @@ public class DatabaseInit implements ApplicationRunner{
         t6.setProduct(producto6);
         t6.setCurrentStatus(EstadoTramite.APROBADO);
         t6.setLastUpdate(LocalDateTime.now().minusDays(1800)); // Hace 5 años aprox
+        t6.setEmpresaId(1L);
         tramiteRepo.save(t6);
 
         // Después de crear los trámites, asignarles usuarios

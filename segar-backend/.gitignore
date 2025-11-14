@@ -32,4 +32,17 @@ build/
 ### VS Code ###
 .vscode/
 
+# Google Cloud Platform credentials - NEVER commit these files
 gcp-service-account.json
+*-service-account.json
+
+# Environment files with sensitive data
+.env
+.env.*
+!.env.example
+
+# Database files
+*.db
+*.mv.db
+*.trace.db
+segardb.*

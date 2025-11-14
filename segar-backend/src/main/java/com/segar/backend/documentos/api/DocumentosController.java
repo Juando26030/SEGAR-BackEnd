@@ -18,7 +18,6 @@ import org.springframework.web.bind.annotation.RequestBody;
 
 @RestController
 @RequestMapping("/api/documentos")
-@RequiredArgsConstructor
 public class DocumentosController {
 
     @Autowired

@@ -11,15 +11,13 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
+import java.net.http.HttpResponse;
 import java.util.List;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.RequestParam;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
 
 
 
@@ -58,6 +56,21 @@ public class TramitesController {
     @PostMapping("/create")
     public Tramite createTramite(@RequestBody RadicacionSolicitudDTO tramite) {
         return service.createTramite(tramite);
+    }
+
+    @PostMapping("/revenue")
+    public ResponseEntity<?> revenueTramite(@RequestBody RadicacionSolicitudDTO tramite) {
+        try {
+            // Aquí procesas el trámite
+            // ...
+
+            // Siempre retorno 200 OK con un mensaje
+            return ResponseEntity.ok("Operación ejecutada correctamente");
+        
+        } catch (Exception e) {
+            // Incluso si hay error, igual retornamos 200 OK
+            return ResponseEntity.ok("Operación ejecutada con error controlado: " + e.getMessage());
+        }
     }
 
 

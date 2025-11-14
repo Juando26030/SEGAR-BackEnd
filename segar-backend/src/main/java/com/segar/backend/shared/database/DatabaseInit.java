@@ -219,7 +219,7 @@ public class DatabaseInit implements ApplicationRunner{
 
         // Después de crear los trámites, asignarles usuarios
         t1.setUsuario(admin);
-        t2.setUsuario(empleado);
+        t2.setUsuario(admin);
         t3.setUsuario(admin);
         t4.setUsuario(empleado);
         t5.setUsuario(admin);
